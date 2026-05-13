@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.marconius.wordbopper"
+        applicationId = "com.marconius.WordBopper"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
