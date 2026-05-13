@@ -22,11 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -121,13 +119,16 @@ private fun BubbleCell(
 
     // clearAndSetSemantics completely removes the inner Text node from the accessibility tree,
     // preventing the uppercase visual letter from leaking into the announcement.
+    // - selected is only set when true; false would cause TalkBack to say "not selected" on every bubble
+    // - role is omitted; the onClick action is sufficient to mark it as activatable without adding "button"
+    // - onClick label is only set when selected so users hear "Double-tap to deselect" on selected bubbles;
+    //   unselected bubbles just say "Double-tap to activate" (shorter, faster for gameplay)
     Box(
         modifier = modifier
             .clearAndSetSemantics {
                 contentDescription = label
-                selected = isSelected
-                role = Role.Button
-                onClick(label = if (isSelected) "deselect" else "select") {
+                if (isSelected) selected = true
+                onClick(label = if (isSelected) "deselect" else null) {
                     onTap()
                     true
                 }

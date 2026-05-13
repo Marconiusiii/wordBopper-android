@@ -77,6 +77,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var gameAnnouncementVerbosity by mutableStateOf(GameAnnouncementVerbosity.NORMAL)
         private set
+    var bopAway by mutableStateOf(false)
+        private set
 
     // Game state
     val bubbles = mutableStateListOf<Bubble>()
@@ -146,6 +148,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         speakLetterPhonetics = prefs.getBoolean("wordBopSpeakLetterPhonetics", false)
         bubbleTextColorOption = loadBubbleTextColorOption()
         gameAnnouncementVerbosity = loadGameAnnouncementVerbosity()
+        bopAway = prefs.getBoolean("wordBopBopAway", false)
     }
 
     // MARK: - Settings setters
@@ -178,6 +181,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun setGameAnnouncementVerbosity(verbosity: GameAnnouncementVerbosity) {
         gameAnnouncementVerbosity = verbosity
         prefs.edit().putString("wordBopGameAnnouncementVerbosity", verbosity.name).apply()
+    }
+
+    @JvmName("updateBopAway")
+    fun setBopAway(value: Boolean) {
+        bopAway = value
+        prefs.edit().putBoolean("wordBopBopAway", value).apply()
     }
 
     // MARK: - Game lifecycle
@@ -250,13 +259,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audio.stepSelectSoundBack()
         audio.playDeselectSound()
         if (selected.isEmpty()) audio.resetSelectSound()
+        if (bopAway && (gameMode == GameMode.TIMED || gameMode == GameMode.NON_STOP)) {
+            replaceBubble(bubble.id)
+        }
     }
 
     fun clearSelection() {
         if (selected.isEmpty()) return
+        val idsToReplace = if (bopAway && (gameMode == GameMode.TIMED || gameMode == GameMode.NON_STOP))
+            selected.map { it.bubbleId } else emptyList()
         selected.clear()
         audio.resetSelectSound()
         audio.playBonusSound()
+        for (id in idsToReplace) replaceBubble(id)
         if (gameMode == GameMode.TIMED) {
             secondsLeft = min(secondsLeft + 15, gameDuration)
             announce(GameplayAnnouncements.CLEARED_WITH_TIME_BONUS, includeInLowVerbosity = true)

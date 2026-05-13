@@ -419,11 +419,20 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
         SettingsToggleRow(
+            title = "BopAway",
+            checked = vm.bopAway,
+            onCheckedChange = { vm.setBopAway(it) }
+        )
+        SettingsDescription("For an extra challenge, BopAway will instantly replace any letters you deselect, or replace all selected letters with new letters when using Clear Letters. Bop wisely!")
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsToggleRow(
             title = "Speak Letter Positions",
             checked = vm.speakLetterPositions,
             onCheckedChange = { vm.setSpeakLetterPositions(it) }
         )
-        SettingsDescription("Adds Column and Row locations to the letters, like \"B, column 2, row 5\" for Column 2, Row 5.")
+        SettingsDescription("Adds Column and Row locations to the letters, like \"B, 2 5\" for Column 2, Row 5.")
 
         SettingsToggleRow(
             title = "Speak Letter Phonetics",
@@ -600,31 +609,10 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
                 textAlign = TextAlign.Center
             )
 
-            Text(
-                text = "© 2026 — WordBopper",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = WbMuted,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Version $versionName",
-                fontSize = 12.sp,
-                color = WbMuted,
-                textAlign = TextAlign.Center
-            )
-
             Spacer(modifier = Modifier.height(4.dp))
         }
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
-
-        AboutLinkRow(label = "Privacy Policy") {
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://marconius.com/wbPrivacy/"))
-            )
-        }
 
         AboutLinkRow(label = "Send Feedback") {
             val subject = Uri.encode("WordBopper Android Feedback")
@@ -632,6 +620,23 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
                 Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject"))
             )
         }
+
+        AboutLinkRow(label = "Privacy Policy") {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://marconius.com/wbPrivacy/"))
+            )
+        }
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+
+        Text(
+            text = "© 2026 — WordBopper Version $versionName",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = WbMuted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
     }
 }
 
