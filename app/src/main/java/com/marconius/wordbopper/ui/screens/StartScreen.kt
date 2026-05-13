@@ -1,0 +1,688 @@
+package com.marconius.wordbopper.ui.screens
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.marconius.wordbopper.model.BestGame
+import com.marconius.wordbopper.model.BubbleTextColorOption
+import com.marconius.wordbopper.model.GameAnnouncementVerbosity
+import com.marconius.wordbopper.model.GameMode
+import com.marconius.wordbopper.ui.theme.WbAccent1
+import com.marconius.wordbopper.ui.theme.WbAccent2
+import com.marconius.wordbopper.ui.theme.WbAccent5
+import com.marconius.wordbopper.ui.theme.WbBackground
+import com.marconius.wordbopper.ui.theme.WbMuted
+import com.marconius.wordbopper.ui.theme.WbPanel
+import com.marconius.wordbopper.ui.theme.WbSurface
+import com.marconius.wordbopper.ui.theme.WbText
+import com.marconius.wordbopper.viewmodel.GameViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StartScreen(vm: GameViewModel) {
+    val view = LocalView.current
+    var showInstructions by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        view.announceForAccessibility("WordBopper")
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(WbBackground)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        Text(
+            text = "WordBopper",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .padding(top = 24.dp, bottom = 8.dp)
+                .semantics {
+                    heading()
+                    traversalIndex = -1f
+                }
+        )
+
+        Row(modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp)) {
+            TextLinkButton(
+                text = "How to Play",
+                modifier = Modifier.weight(1f),
+                onClick = { showInstructions = true }
+            )
+            TextLinkButton(
+                text = "Game Settings",
+                modifier = Modifier.weight(1f),
+                onClick = { showSettings = true }
+            )
+        }
+
+        StartGameButton(onClick = { vm.startGame() })
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        BestGameCard(bestGame = vm.bestGame)
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    if (showInstructions) {
+        ModalBottomSheet(
+            onDismissRequest = { showInstructions = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            InstructionsSheetContent { showInstructions = false }
+        }
+    }
+
+    if (showSettings) {
+        ModalBottomSheet(
+            onDismissRequest = { showSettings = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            GameSettingsSheetContent(vm = vm, onDismiss = { showSettings = false })
+        }
+    }
+}
+
+@Composable
+private fun StartGameButton(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 132.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(Brush.linearGradient(listOf(WbAccent1, WbAccent2)))
+            .clickable(onClickLabel = "Start game", onClick = onClick)
+            .semantics { role = Role.Button },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Start Game",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+private fun TextLinkButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Row(
+        modifier = modifier
+            .heightIn(min = 58.dp)
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = WbAccent5,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun BestGameCard(bestGame: BestGame) {
+    var isExpanded by remember { mutableStateOf(true) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(WbSurface)
+            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(16.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 52.dp)
+                .clickable {
+                    isExpanded = !isExpanded
+                }
+                .clearAndSetSemantics {
+                    heading()
+                    contentDescription = "Your best game"
+                    stateDescription = if (isExpanded) "Expanded" else "Collapsed"
+                    role = Role.Button
+                    onClick(label = if (isExpanded) "collapse" else "expand") {
+                        isExpanded = !isExpanded
+                        true
+                    }
+                }
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Your best game",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = if (isExpanded) "▾" else "▸",
+                fontSize = 12.sp,
+                color = WbMuted
+            )
+        }
+
+        AnimatedVisibility(visible = isExpanded) {
+            Column {
+                BestGameSection(
+                    title = "Timed Mode",
+                    stats = listOf(
+                        Pair("Highest score", "${bestGame.highestScore}"),
+                        Pair("Longest word", bestGame.longestWord.ifEmpty { "None yet" }),
+                        Pair("Most words", "${bestGame.mostWords}"),
+                        Pair("Largest chain", "${bestGame.largestLetterChain}")
+                    )
+                )
+                BestGameSection(
+                    title = "Bopple Mode",
+                    stats = listOf(
+                        Pair("Best score", "${bestGame.highestBoppleScore}"),
+                        Pair("Longest word", bestGame.longestBoppleWord.ifEmpty { "None yet" }),
+                        Pair("Most words", "${bestGame.mostBoppleWords}")
+                    )
+                )
+                BestGameSection(
+                    title = "Non-Stop Mode",
+                    stats = listOf(
+                        Pair("Best score", "${bestGame.highestNonStopScore}"),
+                        Pair("Longest word", bestGame.longestNonStopWord.ifEmpty { "None yet" }),
+                        Pair("Most words", "${bestGame.mostNonStopWords}"),
+                        Pair("Largest chain", "${bestGame.largestNonStopLetterChain}")
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BestGameSection(title: String, stats: List<Pair<String, String>>) {
+    Text(
+        text = title,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        color = WbMuted,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 32.dp)
+            .padding(horizontal = 14.dp)
+            .semantics { heading() }
+    )
+    val chunked = stats.chunked(2)
+    for (row in chunked) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            for ((label, value) in row) {
+                BestStatCell(label = label, value = value, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BestStatCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .clearAndSetSemantics {
+                contentDescription = "$label: $value"
+            }
+    ) {
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = WbMuted)
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = WbText)
+    }
+}
+
+@Composable
+private fun InstructionsSheetContent(onDismiss: () -> Unit) {
+    val instructions = listOf(
+        "Tap letter bubbles anywhere on the 5 by 5 grid to build words.",
+        "Build words from letters that are next to each other to earn a bonus. Do this three times in a row to activate a timed 3x score multiplier.",
+        "Hit Make Word to score. Hit Clear Letters to deselect all selected letters and get 15 seconds added to the timer in Timed mode.",
+        "Timed mode has 2 minutes on the clock, and letters change as you use them. Non-Stop mode turns off the timer and lets you Bop til you drop!",
+        "For TalkBack users, explore by touch or use linear navigation to navigate the grid."
+    )
+    val boppleInstructions = listOf(
+        "Words must be made up of letters that are next to each other in the grid.",
+        "Letters stay in place after you make words.",
+        "3 or 4 letter words score 1 point, 5 letters score 2, 6 letters score 3, 7 letters score 5, and 8 or more letters score 11.",
+        "Play together with friends at the same time to see who can Bopple the best!"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 32.dp)
+    ) {
+        SheetCloseButton(onDismiss = onDismiss)
+        Text(
+            text = "How to Play",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .semantics { heading() }
+        )
+
+        instructions.forEach { InstructionRow(it) }
+
+        Text(
+            text = "Bopple",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .semantics { heading() }
+        )
+
+        boppleInstructions.forEach { InstructionRow(it) }
+    }
+}
+
+@Composable
+private fun InstructionRow(text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("•", color = WbAccent5, fontSize = 16.sp)
+        Text(text, color = WbText, fontSize = 16.sp)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
+    var showAbout by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 32.dp)
+    ) {
+        SheetCloseButton(onDismiss = onDismiss)
+        Text(
+            text = "Game Settings",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .semantics { heading() }
+        )
+
+        SettingsSectionLabel("Game Mode")
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            GameMode.values().forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = vm.gameMode == mode,
+                    onClick = { vm.setGameMode(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index, GameMode.values().size)
+                ) {
+                    Text(mode.label)
+                }
+            }
+        }
+        SettingsDescription(vm.gameMode.settingsBlurb)
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsToggleRow(
+            title = "Speak Letter Positions",
+            checked = vm.speakLetterPositions,
+            onCheckedChange = { vm.setSpeakLetterPositions(it) }
+        )
+        SettingsDescription("Adds Column and Row locations to the letters, like \"B, column 2, row 5\" for Column 2, Row 5.")
+
+        SettingsToggleRow(
+            title = "Speak Letter Phonetics",
+            checked = vm.speakLetterPhonetics,
+            onCheckedChange = { vm.setSpeakLetterPhonetics(it) }
+        )
+        SettingsDescription("Adds the phonetic version of the bubble letters to the announcement, such as \"a, Alpha.\"")
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsSectionLabel("Bubble Text Color")
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            BubbleTextColorOption.values().forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = vm.bubbleTextColorOption == option,
+                    onClick = { vm.setBubbleTextColorOption(option) },
+                    shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.values().size)
+                ) {
+                    Text(option.label)
+                }
+            }
+        }
+        SettingsDescription("Pick your preference of light or dark text for the bubbles.")
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsSectionLabel("Game Announcements")
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            GameAnnouncementVerbosity.values().forEachIndexed { index, verbosity ->
+                SegmentedButton(
+                    selected = vm.gameAnnouncementVerbosity == verbosity,
+                    onClick = { vm.setGameAnnouncementVerbosity(verbosity) },
+                    shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.values().size)
+                ) {
+                    Text(verbosity.label)
+                }
+            }
+        }
+        SettingsDescription("Controls spoken game announcements for scoring, invalid words, and cleared letters.")
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clickable { showAbout = true }
+                .semantics { role = Role.Button }
+                .padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "About WordBopper",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WbAccent5
+            )
+        }
+    }
+
+    if (showAbout) {
+        ModalBottomSheet(
+            onDismissRequest = { showAbout = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            AboutSheetContent { showAbout = false }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSectionLabel(text: String) {
+    Text(
+        text = text,
+        fontSize = 16.sp,
+        color = WbText,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 44.dp)
+            .padding(horizontal = 24.dp, vertical = 10.dp)
+    )
+}
+
+@Composable
+private fun SettingsDescription(text: String) {
+    Text(
+        text = text,
+        fontSize = 12.sp,
+        color = WbMuted,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 10.dp)
+    )
+}
+
+@Composable
+private fun SettingsToggleRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable { onCheckedChange(!checked) }
+            .clearAndSetSemantics {
+                contentDescription = title
+                stateDescription = if (checked) "On" else "Off"
+                role = Role.Switch
+                onClick(label = if (checked) "turn off" else "turn on") {
+                    onCheckedChange(!checked)
+                    true
+                }
+            }
+            .padding(horizontal = 24.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            color = WbText,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = WbBackground,
+                checkedTrackColor = WbAccent5
+            )
+        )
+    }
+}
+
+@Composable
+private fun AboutSheetContent(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val versionName = remember {
+        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0" }
+        catch (_: Exception) { "1.0" }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(bottom = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        SheetCloseButton(onDismiss = onDismiss)
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "About WordBopper",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .padding(vertical = 16.dp)
+                    .semantics { heading() }
+            )
+
+            Text(
+                text = "By Chancey Fleet and Marco Salsiccia",
+                fontSize = 16.sp,
+                color = WbText,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "© 2026 — WordBopper",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WbMuted,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Version $versionName",
+                fontSize = 12.sp,
+                color = WbMuted,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+
+        AboutLinkRow(label = "Privacy Policy") {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://marconius.com/wbPrivacy/"))
+            )
+        }
+
+        AboutLinkRow(label = "Send Feedback") {
+            val subject = Uri.encode("WordBopper Android Feedback")
+            context.startActivity(
+                Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject"))
+            )
+        }
+    }
+}
+
+@Composable
+private fun AboutLinkRow(label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics {
+                role = Role.Button
+                contentDescription = label
+                onClick { onClick(); true }
+            }
+            .padding(horizontal = 24.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = WbAccent5
+        )
+    }
+}
+
+@Composable
+private fun SheetCloseButton(onDismiss: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End
+    ) {
+        Box(
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .clickable(onClick = onDismiss)
+                .clearAndSetSemantics {
+                    role = Role.Button
+                    contentDescription = "Close"
+                    onClick { onDismiss(); true }
+                }
+                .padding(horizontal = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Close",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WbAccent5
+            )
+        }
+    }
+}
