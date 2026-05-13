@@ -1,21 +1,38 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# WordBopper R8 rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve stack trace line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ViewModel subclasses — R8 may strip constructors used by ViewModelProvider
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>();
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Kotlin data classes used as state/model objects keep their fields
+-keepclassmembers class com.marconius.wordbopper.model.** {
+    *;
+}
+
+# Kotlin enums — keep name() and values() for any enum in the app
+-keepclassmembers enum com.marconius.wordbopper.** {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# AudioEngine uses Android's MediaPlayer/SoundPool via reflection paths; keep it intact
+-keep class com.marconius.wordbopper.audio.AudioEngine { *; }
+
+# Jetpack Compose — the compiler plugin generates classes with synthetic names
+-dontwarn androidx.compose.**
+-keep class androidx.compose.** { *; }
+-keepclassmembers class androidx.compose.** { *; }
+
+# Compose lambda stability inference metadata
+-keepclassmembers class **$\$serializer { *; }
+
+# Coroutines
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+-dontwarn kotlinx.coroutines.**
