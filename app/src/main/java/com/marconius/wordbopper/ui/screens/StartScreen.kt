@@ -314,7 +314,7 @@ private fun BestStatCell(label: String, value: String, modifier: Modifier = Modi
 private fun InstructionsSheetContent(onDismiss: () -> Unit) {
     val instructions = listOf(
         "Tap letter bubbles anywhere on the 5 by 5 grid to build words.",
-        "Build words from letters that are next to each other to earn a bonus. Do this three times in a row to activate a timed 3x score multiplier.",
+        "Build words with at least 3 letters in a row that are next to each other in the grid to earn a chain bonus. Do this three times in a row to activate a timed 3x score multiplier.",
         "Hit Make Word to score. Hit Clear Letters to deselect all selected letters and get 15 seconds added to the timer in Timed mode.",
         "Timed mode has 2 minutes on the clock, and letters change as you use them. Non-Stop mode turns off the timer and lets you Bop til you drop!",
         "For TalkBack users, explore by touch or use linear navigation to navigate the grid."
@@ -323,7 +323,7 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         "Words must be made up of letters that are next to each other in the grid.",
         "Letters stay in place after you make words.",
         "3 or 4 letter words score 1 point, 5 letters score 2, 6 letters score 3, 7 letters score 5, and 8 or more letters score 11.",
-        "Play together with friends at the same time to see who can Bopple the best!"
+        "Play together with friends at the same time to see who can Bopple the best! All on their own devices, of course."
     )
 
     Column(
@@ -419,15 +419,6 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
         SettingsToggleRow(
-            title = "BopAway",
-            checked = vm.bopAway,
-            onCheckedChange = { vm.setBopAway(it) }
-        )
-        SettingsDescription("For an extra challenge, BopAway will instantly replace any letters you deselect, or replace all selected letters with new letters when using Clear Letters. Bop wisely!")
-
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
-
-        SettingsToggleRow(
             title = "Speak Letter Positions",
             checked = vm.speakLetterPositions,
             onCheckedChange = { vm.setSpeakLetterPositions(it) }
@@ -440,6 +431,13 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             onCheckedChange = { vm.setSpeakLetterPhonetics(it) }
         )
         SettingsDescription("Adds the phonetic version of the bubble letters to the announcement, such as \"a, Alpha.\"")
+
+        SettingsToggleRow(
+            title = "BopAway",
+            checked = vm.bopAway,
+            onCheckedChange = { vm.setBopAway(it) }
+        )
+        SettingsDescription("For an extra challenge, BopAway instantly moves each tapped letter into the word tray and replaces it with a new letter. If you clear the word, those letters are lost. Bop wisely!")
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
@@ -455,7 +453,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
                 }
             }
         }
-        SettingsDescription("Pick your preference of light or dark text for the bubbles.")
+        SettingsDescription("Pick your preference of light or dark text for the bubbles. Either option will still have colorful bubbles to bop!")
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
@@ -573,11 +571,13 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
         try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0" }
         catch (_: Exception) { "1.0" }
     }
+    var isAcknowledgementsExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(bottom = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -587,7 +587,6 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -605,14 +604,17 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             Text(
                 text = "By Chancey Fleet and Marco Salsiccia",
                 fontSize = 16.sp,
-                color = WbText,
-                textAlign = TextAlign.Center
+                color = WbText
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Chancey wanted this game to exist and vibe coded the initial version, then passed it to Marco to refine it into the original web game. Marco then decided to rewrite the whole game for Android, and now here you are bopping away. Thanks for playing!",
+                fontSize = 16.sp,
+                color = WbText
+            )
         }
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(top = 16.dp))
 
         AboutLinkRow(label = "Send Feedback") {
             val subject = Uri.encode("WordBopper Android Feedback")
@@ -624,6 +626,56 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
         AboutLinkRow(label = "Privacy Policy") {
             context.startActivity(
                 Intent(Intent.ACTION_VIEW, Uri.parse("https://marconius.com/wbPrivacy/"))
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clickable { isAcknowledgementsExpanded = !isAcknowledgementsExpanded }
+                .clearAndSetSemantics {
+                    role = Role.Button
+                    contentDescription = "Acknowledgements"
+                    stateDescription = if (isAcknowledgementsExpanded) "Expanded" else "Collapsed"
+                    onClick(label = if (isAcknowledgementsExpanded) "collapse" else "expand") {
+                        isAcknowledgementsExpanded = !isAcknowledgementsExpanded
+                        true
+                    }
+                }
+                .padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Acknowledgements",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WbAccent5,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = if (isAcknowledgementsExpanded) "▾" else "▸",
+                fontSize = 12.sp,
+                color = WbMuted
+            )
+        }
+
+        AnimatedVisibility(visible = isAcknowledgementsExpanded) {
+            Text(
+                text = """Word list copyright 2000-2026 by Kevin Atkinson.
+
+Permission to use, copy, modify, distribute, and sell any part of the English Speller Database (ESDB, previously known as SCOWLv2), or word lists created from it, is hereby granted without fee, provided that the above copyright notice appears in all copies and that both the above copyright notice and this notice appear in supporting documentation. Kevin Atkinson makes no representations about the suitability of this database for any purpose. It is provided "as is" without express or implied warranty.
+
+ESDB is derived from many sources, most of which are in the Public Domain. Data from the Corpus of Contemporary American English (COCA) was also used.
+
+More information about COCA is available at https://www.english-corpora.org/coca/.
+
+The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.""",
+                fontSize = 12.sp,
+                color = WbMuted,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
             )
         }
 

@@ -110,8 +110,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private var timerJob: Job? = null
     private var powerUpTimerJob: Job? = null
+    private val consumedBopAwayBubbleIds = mutableSetOf<UUID>()
 
     // Computed
+    val bopAwayIsActive: Boolean get() = bopAway && gameMode != GameMode.BOPPLE
+    val clearActionTitle: String get() = if (bopAwayIsActive) "Clear Word" else "Clear Letters"
     val currentWord: String get() = selected.joinToString("") { it.letter }
     val makeWordEnabled: Boolean get() = selected.size >= 3
     val showsTimer: Boolean get() = gameMode != GameMode.NON_STOP
@@ -130,7 +133,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     val chainMeterValue: String
         get() = if (chainPowerUpActive)
-            "3 times chain bop active, $chainPowerUpSecondsLeft seconds left"
+            "3 times chain bop active"
         else "$connectedWordStreak of 3 chains"
 
     val chainMeterProgress: Double
@@ -200,6 +203,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         totalLettersUsed = 0
         secondsLeft = gameDuration
         gameActive = true
+        consumedBopAwayBubbleIds.clear()
         connectedWordStreak = 0
         chainPowerUpActive = false
         chainPowerUpSecondsLeft = 0
@@ -238,12 +242,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         screen = GameScreen.START
     }
 
-    fun isSelected(bubble: Bubble): Boolean = selected.any { it.bubbleId == bubble.id }
+    fun isSelected(bubble: Bubble): Boolean {
+        if (bopAwayIsActive) return false
+        return selected.any { it.bubbleId == bubble.id }
+    }
 
     // MARK: - Bubble interaction
 
     fun tapBubble(bubble: Bubble) {
         if (!gameActive) return
+        if (bopAwayIsActive) {
+            if (consumedBopAwayBubbleIds.contains(bubble.id)) return
+            consumedBopAwayBubbleIds.add(bubble.id)
+            selectBubble(bubble)
+            replaceBubble(bubble.id)
+            return
+        }
         if (selected.any { it.bubbleId == bubble.id }) deselectBubble(bubble)
         else selectBubble(bubble)
     }
@@ -259,20 +273,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audio.stepSelectSoundBack()
         audio.playDeselectSound()
         if (selected.isEmpty()) audio.resetSelectSound()
-        if (bopAway && (gameMode == GameMode.TIMED || gameMode == GameMode.NON_STOP)) {
-            replaceBubble(bubble.id)
-        }
     }
 
     fun clearSelection() {
         if (selected.isEmpty()) return
-        val idsToReplace = if (bopAway && (gameMode == GameMode.TIMED || gameMode == GameMode.NON_STOP))
-            selected.map { it.bubbleId } else emptyList()
         selected.clear()
         audio.resetSelectSound()
         audio.playBonusSound()
-        for (id in idsToReplace) replaceBubble(id)
-        if (gameMode == GameMode.TIMED) {
+        if (bopAwayIsActive) {
+            announce(GameplayAnnouncements.WORD_CLEARED, includeInLowVerbosity = true)
+        } else if (gameMode == GameMode.TIMED) {
             secondsLeft = min(secondsLeft + 15, gameDuration)
             announce(GameplayAnnouncements.CLEARED_WITH_TIME_BONUS, includeInLowVerbosity = true)
         } else {
@@ -322,7 +332,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         selected.clear()
         audio.resetSelectSound()
 
-        if (gameMode != GameMode.BOPPLE) {
+        if (gameMode != GameMode.BOPPLE && !bopAwayIsActive) {
             for (id in scoredIds) replaceBubble(id)
         }
 
@@ -367,8 +377,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun calcChainBonus(): Int {
         if (selected.size < 3) return 0
-        val connected = selected.zipWithNext().all { (a, b) -> areTouching(a, b) }
-        return if (connected) selected.size else 0
+        val longestRun = longestConnectedRunLength()
+        return if (longestRun >= 3) longestRun else 0
+    }
+
+    private fun longestConnectedRunLength(): Int {
+        var longest = 1
+        var current = 1
+        for ((previous, next) in selected.zipWithNext()) {
+            if (areTouching(previous, next)) {
+                current++
+                if (current > longest) longest = current
+            } else {
+                current = 1
+            }
+        }
+        return longest
     }
 
     private fun areTouching(a: SelectedLetter, b: SelectedLetter): Boolean {

@@ -4,8 +4,9 @@ import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 
 object GameplayAnnouncements {
     const val CLEARED = "Cleared."
+    const val WORD_CLEARED = "Word cleared."
     const val CLEARED_WITH_TIME_BONUS = "Cleared. 15 seconds added."
-    const val DISCONNECTED_BOPPLE_WORD = "Bopple words must use connected letters."
+    const val DISCONNECTED_BOPPLE_WORD = "Bopple words must use letters that are next to each other."
 
     fun invalidWord(word: String) = "$word, not valid."
     fun duplicateWord(word: String) = "$word, already found."

@@ -16,6 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
@@ -54,6 +57,9 @@ import androidx.compose.ui.semantics.role
 @Composable
 fun GameScreen(vm: GameViewModel) {
     val view = LocalView.current
+    val selectedIds by remember { derivedStateOf {
+        if (vm.bopAwayIsActive) emptySet() else vm.selected.map { it.bubbleId }.toHashSet()
+    } }
 
     LaunchedEffect(Unit) {
         view.announceForAccessibility(vm.gameplayHeading)
@@ -118,7 +124,7 @@ fun GameScreen(vm: GameViewModel) {
 
             BubbleGrid(
                 bubbles = vm.bubbles,
-                selectedIds = vm.selected.map { it.bubbleId }.toHashSet(),
+                selectedIds = selectedIds,
                 cellSize = cellSize,
                 textColorOption = vm.bubbleTextColorOption,
                 speakLetterPositions = vm.speakLetterPositions,
@@ -146,6 +152,7 @@ private fun ActionBar(vm: GameViewModel) {
                 .heightIn(min = 88.dp)
         ) {
             // Clear button — 34% width
+            val clearLabel = vm.clearActionTitle
             Box(
                 modifier = Modifier
                     .weight(0.34f)
@@ -153,14 +160,14 @@ private fun ActionBar(vm: GameViewModel) {
                     .clickable { vm.clearSelection() }
                     .clearAndSetSemantics {
                         role = Role.Button
-                        contentDescription = "Clear Letters"
+                        contentDescription = clearLabel
                         onClick { vm.clearSelection(); true }
                     }
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Clear Letters",
+                    text = clearLabel,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = WbMuted,
