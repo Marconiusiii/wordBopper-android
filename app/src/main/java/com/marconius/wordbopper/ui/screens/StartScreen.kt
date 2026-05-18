@@ -42,8 +42,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -75,12 +76,12 @@ import com.marconius.wordbopper.viewmodel.GameViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StartScreen(vm: GameViewModel) {
-    val view = LocalView.current
+    val headingFocusRequester = remember { FocusRequester() }
     var showInstructions by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        view.announceForAccessibility("WordBopper")
+        headingFocusRequester.requestFocus()
     }
 
     Column(
@@ -92,20 +93,30 @@ fun StartScreen(vm: GameViewModel) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
     ) {
-        Text(
-            text = "WordBopper",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Black,
-            color = WbText,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 72.dp)
                 .padding(top = 24.dp, bottom = 8.dp)
-                .semantics {
+                .focusRequester(headingFocusRequester)
+                .semantics(mergeDescendants = true) {
                     heading()
                     traversalIndex = -1f
                 }
-        )
+        ) {
+            Text(
+                text = "WordBopper",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText
+            )
+            Text(
+                text = "By Chancey Fleet and Marco Salsiccia",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WbMuted
+            )
+        }
 
         Row(modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp)) {
             TextLinkButton(
@@ -316,8 +327,9 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         "Tap letter bubbles anywhere on the 5 by 5 grid to build words.",
         "Build words with at least 3 letters in a row that are next to each other in the grid to earn a chain bonus. Do this three times in a row to activate a timed 3x score multiplier.",
         "Hit Make Word to score. Hit Clear Letters to deselect all selected letters and get 15 seconds added to the timer in Timed mode.",
+        "When BopAway is on, each letter you tap moves into the word tray and gets replaced right away. Hit Clear Word to erase the current word from the tray.",
         "Timed mode has 2 minutes on the clock, and letters change as you use them. Non-Stop mode turns off the timer and lets you Bop til you drop!",
-        "For TalkBack users, explore by touch or use linear navigation to navigate the grid."
+        "For TalkBack users, use Explore by Touch or linear navigation to quickly navigate the grid."
     )
     val boppleInstructions = listOf(
         "Words must be made up of letters that are next to each other in the grid.",
@@ -612,11 +624,42 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
                 fontSize = 16.sp,
                 color = WbText
             )
+
+            Text(
+                text = "If you enjoy this game, try out our other game on the Play Store:",
+                fontSize = 16.sp,
+                color = WbText
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clickable {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.marconius.whackabraille"))
+                        )
+                    }
+                    .clearAndSetSemantics {
+                        role = Role.Button
+                        contentDescription = "Whack A Braille!"
+                        onClick { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.marconius.whackabraille"))); true }
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Whack A Braille!",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    color = WbAccent5,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
         }
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(top = 16.dp))
 
-        AboutLinkRow(label = "Send Feedback") {
+        AboutLinkRow(label = "Send Game Feedback") {
             val subject = Uri.encode("WordBopper Android Feedback")
             context.startActivity(
                 Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject"))
@@ -670,7 +713,9 @@ ESDB is derived from many sources, most of which are in the Public Domain. Data 
 
 More information about COCA is available at https://www.english-corpora.org/coca/.
 
-The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.""",
+The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.
+
+The Spanish, French, and German word lists are derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.""",
                 fontSize = 12.sp,
                 color = WbMuted,
                 modifier = Modifier

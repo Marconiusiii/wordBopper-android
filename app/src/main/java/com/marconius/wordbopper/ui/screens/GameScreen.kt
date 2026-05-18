@@ -1,5 +1,6 @@
 package com.marconius.wordbopper.ui.screens
 
+import java.util.UUID
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -58,7 +59,7 @@ import androidx.compose.ui.semantics.role
 fun GameScreen(vm: GameViewModel) {
     val view = LocalView.current
     val selectedIds by remember { derivedStateOf {
-        if (vm.bopAwayIsActive) emptySet() else vm.selected.map { it.bubbleId }.toHashSet()
+        if (vm.bopAwayIsActive) emptySet<UUID>() else vm.selected.map { it.bubbleId }.toHashSet()
     } }
 
     LaunchedEffect(Unit) {
