@@ -28,8 +28,6 @@
 -keep class androidx.compose.** { *; }
 -keepclassmembers class androidx.compose.** { *; }
 
-# Compose lambda stability inference metadata
--keepclassmembers class **$\$serializer { *; }
 
 # Coroutines
 -keepclassmembernames class kotlinx.** {

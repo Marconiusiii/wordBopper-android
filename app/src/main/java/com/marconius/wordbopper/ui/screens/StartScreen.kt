@@ -449,7 +449,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             checked = vm.bopAway,
             onCheckedChange = { vm.setBopAway(it) }
         )
-        SettingsDescription("For an extra challenge, BopAway instantly moves each tapped letter into the word tray and replaces it with a new letter. If you clear the word, those letters are lost. Bop wisely!")
+        SettingsDescription("For an extra challenge, BopAway instantly moves each bopped letter into the Word Tray and replaces it with a new letter in the grid. If you clear the word, those letters will be lost. Bop Wisely!")
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
@@ -614,47 +614,11 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             )
 
             Text(
-                text = "By Chancey Fleet and Marco Salsiccia",
-                fontSize = 16.sp,
-                color = WbText
-            )
-
-            Text(
                 text = "Chancey wanted this game to exist and vibe coded the initial version, then passed it to Marco to refine it into the original web game. Marco then decided to rewrite the whole game for Android, and now here you are bopping away. Thanks for playing!",
                 fontSize = 16.sp,
                 color = WbText
             )
 
-            Text(
-                text = "If you enjoy this game, try out our other game on the Play Store:",
-                fontSize = 16.sp,
-                color = WbText
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .clickable {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.marconius.whackabraille"))
-                        )
-                    }
-                    .clearAndSetSemantics {
-                        role = Role.Button
-                        contentDescription = "Whack A Braille!"
-                        onClick { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.marconius.whackabraille"))); true }
-                    },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Whack A Braille!",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    color = WbAccent5,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
         }
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(top = 16.dp))

@@ -232,7 +232,7 @@ class AudioEngine(private val scope: CoroutineScope) {
         val rootIndex = min(step - 3, sparkleNotes.size - 4)
         val phrase = sparkleNotes.drop(rootIndex).take(sparkleCount).toMutableList()
         if (step >= 7 && phrase.size > 1) {
-            val last = phrase.removeLast()
+            val last = phrase.removeAt(phrase.lastIndex)
             phrase.shuffle()
             phrase.add(last)
         }
