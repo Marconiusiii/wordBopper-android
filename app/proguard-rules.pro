@@ -34,3 +34,7 @@
     volatile <fields>;
 }
 -dontwarn kotlinx.coroutines.**
+
+# Monarch / KeySoft SDK integration
+-keep class com.humanware.keysoftsdk.** { *; }
+-dontwarn com.humanware.keysoftsdk.**
