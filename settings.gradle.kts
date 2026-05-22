@@ -18,7 +18,9 @@ plugins {
 }
 
 val keysoftTokenProperty = "gitlab_maven_repo_deployToken"
-val keysoftRepoUrl = "https://gitlab.com/api/v4/projects/45979364/packages/maven"
+val keysoftRepoUrl = providers.gradleProperty("gitlabMavenRepoUrl")
+    .orElse("https://gitlab.com/api/v4/projects/45979364/packages/maven")
+    .get()
 val keysoftFileToken = file("keystore.properties")
     .takeIf { it.exists() }
     ?.inputStream()
@@ -47,6 +49,5 @@ dependencyResolutionManagement {
         }
     }
 }
-
 rootProject.name = "WordBopper"
 include(":app")

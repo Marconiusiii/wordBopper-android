@@ -63,6 +63,16 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (
+            event.action == KeyEvent.ACTION_DOWN &&
+            monarchController?.handleKeyDown(event.keyCode) == true
+        ) {
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (monarchController?.handleKeyDown(keyCode) == true) {
             return true

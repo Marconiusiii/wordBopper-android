@@ -12,105 +12,143 @@ class MonarchGridRenderer(
     private val width: Int,
     private val height: Int
 ) {
-    private val cellWidth = width / 5
-    private val cellHeight = height / 5
+    private val gameplayTop = 5
+    private val gameplayHeight = height - gameplayTop
 
-    fun render(viewModel: GameViewModel): Array<ByteArray> {
+    fun render(viewModel: GameViewModel, statusText: String = ""): Array<ByteArray> {
         val dots = blank()
         when (viewModel.screen) {
             GameScreen.START -> renderStart(dots)
-            GameScreen.GAME -> renderGame(dots, viewModel)
+            GameScreen.GAME -> renderGame(dots, viewModel, statusText)
             GameScreen.RESULTS -> renderResults(dots, viewModel)
         }
         return dots
     }
 
-    fun tappedCell(pointX: Int, pointY: Int): Pair<Int, Int>? {
-        if (pointX !in 0 until width || pointY !in 0 until height) return null
-        val col = ((pointX * 5) / width).coerceIn(0, 4)
-        val row = ((pointY * 5) / height).coerceIn(0, 4)
+    fun tappedCell(pointX: Int, pointY: Int, columns: Int, rows: Int): Pair<Int, Int>? {
+        if (pointX !in 0 until width || pointY < gameplayTop || pointY >= height) return null
+        val col = ((pointX * columns) / width).coerceIn(0, columns - 1)
+        val row = (((pointY - gameplayTop) * rows) / gameplayHeight).coerceIn(0, rows - 1)
         return row to col
     }
 
     private fun renderStart(dots: Array<ByteArray>) {
-        drawText(dots, "word", 10, 5)
-        drawText(dots, "bopper", 10, 16)
-        drawText(dots, "enter", 25, 30)
+        drawBrailleText(dots, "word", 42, 5)
+        drawBrailleText(dots, "bopper", 39, 16)
+        drawBrailleText(dots, "enter", 40, 30)
     }
 
-    private fun renderGame(dots: Array<ByteArray>, viewModel: GameViewModel) {
+    private fun renderGame(dots: Array<ByteArray>, viewModel: GameViewModel, statusText: String) {
+        val trayText = when {
+            viewModel.currentWord.isNotEmpty() -> viewModel.currentWord
+            statusText.isNotBlank() -> statusText
+            else -> "word tray"
+        }
+        drawBrailleText(dots, trayText.lowercase().filter { it.isLetterOrDigit() || it == ' ' }.take(TRAY_CHARACTER_LIMIT), 0, 0)
+
         val selectedIds = viewModel.selected.map { it.bubbleId }.toSet()
         viewModel.bubbles.forEach { bubble ->
-            drawCell(dots, bubble, selectedIds.any { it == bubble.id }, viewModel.selected)
+            drawCell(
+                dots = dots,
+                bubble = bubble,
+                isSelected = selectedIds.any { it == bubble.id },
+                selected = viewModel.selected,
+                columns = viewModel.boardColumns,
+                rows = viewModel.boardRows
+            )
         }
     }
 
     private fun renderResults(dots: Array<ByteArray>, viewModel: GameViewModel) {
-        drawText(dots, "score", 4, 3)
-        drawNumber(dots, viewModel.score, 42, 3)
-        drawText(dots, "words", 4, 16)
-        drawNumber(dots, viewModel.wordCount, 42, 16)
-        drawText(dots, "enter", 20, 30)
+        drawBrailleText(dots, "score", 4, 3)
+        drawBrailleNumber(dots, viewModel.score, 32, 3)
+        drawBrailleText(dots, "words", 4, 16)
+        drawBrailleNumber(dots, viewModel.wordCount, 32, 16)
+        drawBrailleText(dots, "enter", 40, 30)
     }
 
     private fun drawCell(
         dots: Array<ByteArray>,
         bubble: Bubble,
         isSelected: Boolean,
-        selected: List<SelectedLetter>
+        selected: List<SelectedLetter>,
+        columns: Int,
+        rows: Int
     ) {
+        val cellWidth = width / columns
+        val cellHeight = gameplayHeight / rows
         val left = bubble.col * cellWidth
-        val top = bubble.row * cellHeight
-        val right = if (bubble.col == 4) width - 1 else left + cellWidth - 1
-        val bottom = if (bubble.row == 4) height - 1 else top + cellHeight - 1
-
-        drawHorizontalLine(dots, left, right, top)
-        drawVerticalLine(dots, left, top, bottom)
-        if (bubble.col == 4) drawVerticalLine(dots, right, top, bottom)
-        if (bubble.row == 4) drawHorizontalLine(dots, left, right, bottom)
+        val top = gameplayTop + bubble.row * cellHeight
+        val right = if (bubble.col == columns - 1) width - 1 else left + cellWidth - 1
+        val bottom = if (bubble.row == rows - 1) height - 1 else top + cellHeight - 1
 
         if (isSelected) {
-            drawHorizontalLine(dots, left + 2, right - 2, top + 1)
-            drawHorizontalLine(dots, left + 2, right - 2, bottom - 1)
+            drawHorizontalLine(dots, left + 4, right - 4, top + 1)
+            drawHorizontalLine(dots, left + 4, right - 4, bottom - 1)
         }
 
-        val letterX = left + ((right - left - 5) / 2)
-        val letterY = top + 1
-        drawGlyph(dots, bubble.letter.firstOrNull() ?: ' ', letterX, letterY)
+        val letterX = left + ((right - left - BRAILLE_CELL_WIDTH) / 2)
+        val letterY = top + ((bottom - top - BRAILLE_CELL_HEIGHT) / 2)
+        drawBrailleCell(dots, bubble.letter.firstOrNull() ?: ' ', letterX, letterY)
 
         val selectionIndex = selected.indexOfFirst { it.bubbleId == bubble.id }
         if (selectionIndex >= 0) {
-            drawNumber(dots, selectionIndex + 1, right - 5, bottom - 5)
+            drawBrailleNumber(dots, selectionIndex + 1, right - 7, bottom - 3)
         }
     }
 
-    private fun drawText(dots: Array<ByteArray>, text: String, x: Int, y: Int) {
+    private fun drawBrailleText(dots: Array<ByteArray>, text: String, x: Int, y: Int) {
         var cursor = x
         text.forEach { char ->
-            drawGlyph(dots, char, cursor, y)
-            cursor += 6
+            drawBrailleCell(dots, char, cursor, y)
+            cursor += BRAILLE_CELL_STRIDE
         }
     }
 
-    private fun drawNumber(dots: Array<ByteArray>, number: Int, x: Int, y: Int) {
-        drawText(dots, number.toString(), x, y)
+    private fun drawBrailleNumber(dots: Array<ByteArray>, number: Int, x: Int, y: Int) {
+        var cursor = x
+        drawBraillePattern(dots, numberSignDots, cursor, y)
+        cursor += BRAILLE_CELL_STRIDE
+        number.toString().forEach { digit ->
+            val pattern = numberDots[digit] ?: return@forEach
+            drawBraillePattern(dots, pattern, cursor, y)
+            cursor += BRAILLE_CELL_STRIDE
+        }
     }
 
-    private fun drawGlyph(dots: Array<ByteArray>, char: Char, x: Int, y: Int) {
-        val rows = glyphs[char.lowercaseChar()] ?: glyphs[' '] ?: return
-        rows.forEachIndexed { rowIndex, row ->
-            row.forEachIndexed { colIndex, value ->
-                if (value == '1') setPin(dots, x + colIndex, y + rowIndex)
+    private fun drawBrailleCell(dots: Array<ByteArray>, char: Char, x: Int, y: Int) {
+        val unicodeBraille = unicodeBrailleCells[char.lowercaseChar()] ?: return
+        drawBrailleCharacter(dots, unicodeBraille, x, y)
+    }
+
+    private fun drawBraillePattern(dots: Array<ByteArray>, pattern: Set<Int>, x: Int, y: Int) {
+        pattern.forEach { dot ->
+            when (dot) {
+                1 -> setPin(dots, x, y)
+                2 -> setPin(dots, x, y + BRAILLE_DOT_STEP)
+                3 -> setPin(dots, x, y + BRAILLE_DOT_STEP * 2)
+                4 -> setPin(dots, x + BRAILLE_DOT_STEP, y)
+                5 -> setPin(dots, x + BRAILLE_DOT_STEP, y + BRAILLE_DOT_STEP)
+                6 -> setPin(dots, x + BRAILLE_DOT_STEP, y + BRAILLE_DOT_STEP * 2)
             }
         }
     }
 
-    private fun drawHorizontalLine(dots: Array<ByteArray>, startX: Int, endX: Int, y: Int) {
-        for (x in startX..endX) setPin(dots, x, y)
+    private fun drawBrailleCharacter(dots: Array<ByteArray>, char: Char, x: Int, y: Int) {
+        val code = char.code
+        if (code !in 0x2800..0x28ff) return
+        if ((code and 0x01) != 0) setPin(dots, x, y)
+        if ((code and 0x02) != 0) setPin(dots, x, y + 1)
+        if ((code and 0x04) != 0) setPin(dots, x, y + 2)
+        if ((code and 0x08) != 0) setPin(dots, x + 1, y)
+        if ((code and 0x10) != 0) setPin(dots, x + 1, y + 1)
+        if ((code and 0x20) != 0) setPin(dots, x + 1, y + 2)
+        if ((code and 0x40) != 0) setPin(dots, x, y + 3)
+        if ((code and 0x80) != 0) setPin(dots, x + 1, y + 3)
     }
 
-    private fun drawVerticalLine(dots: Array<ByteArray>, x: Int, startY: Int, endY: Int) {
-        for (y in startY..endY) setPin(dots, x, y)
+    private fun drawHorizontalLine(dots: Array<ByteArray>, startX: Int, endX: Int, y: Int) {
+        for (x in startX..endX) setPin(dots, x, y)
     }
 
     private fun setPin(dots: Array<ByteArray>, x: Int, y: Int) {
@@ -122,44 +160,53 @@ class MonarchGridRenderer(
     private fun blank(): Array<ByteArray> = Array(height) { ByteArray(width) { PIN_DOWN } }
 
     companion object {
-        private val glyphs = mapOf(
-            ' ' to listOf("00000", "00000", "00000", "00000", "00000"),
-            '0' to listOf("11100", "10100", "10100", "10100", "11100"),
-            '1' to listOf("01000", "11000", "01000", "01000", "11100"),
-            '2' to listOf("11100", "00100", "11100", "10000", "11100"),
-            '3' to listOf("11100", "00100", "11100", "00100", "11100"),
-            '4' to listOf("10100", "10100", "11100", "00100", "00100"),
-            '5' to listOf("11100", "10000", "11100", "00100", "11100"),
-            '6' to listOf("11100", "10000", "11100", "10100", "11100"),
-            '7' to listOf("11100", "00100", "01000", "01000", "01000"),
-            '8' to listOf("11100", "10100", "11100", "10100", "11100"),
-            '9' to listOf("11100", "10100", "11100", "00100", "11100"),
-            'a' to listOf("01110", "10001", "11111", "10001", "10001"),
-            'b' to listOf("11110", "10001", "11110", "10001", "11110"),
-            'c' to listOf("01111", "10000", "10000", "10000", "01111"),
-            'd' to listOf("11110", "10001", "10001", "10001", "11110"),
-            'e' to listOf("11111", "10000", "11110", "10000", "11111"),
-            'f' to listOf("11111", "10000", "11110", "10000", "10000"),
-            'g' to listOf("01111", "10000", "10111", "10001", "01111"),
-            'h' to listOf("10001", "10001", "11111", "10001", "10001"),
-            'i' to listOf("11100", "01000", "01000", "01000", "11100"),
-            'j' to listOf("00111", "00010", "00010", "10010", "01100"),
-            'k' to listOf("10001", "10010", "11100", "10010", "10001"),
-            'l' to listOf("10000", "10000", "10000", "10000", "11111"),
-            'm' to listOf("10001", "11011", "10101", "10001", "10001"),
-            'n' to listOf("10001", "11001", "10101", "10011", "10001"),
-            'o' to listOf("01110", "10001", "10001", "10001", "01110"),
-            'p' to listOf("11110", "10001", "11110", "10000", "10000"),
-            'q' to listOf("01110", "10001", "10101", "10010", "01101"),
-            'r' to listOf("11110", "10001", "11110", "10010", "10001"),
-            's' to listOf("01111", "10000", "01110", "00001", "11110"),
-            't' to listOf("11111", "00100", "00100", "00100", "00100"),
-            'u' to listOf("10001", "10001", "10001", "10001", "01110"),
-            'v' to listOf("10001", "10001", "10001", "01010", "00100"),
-            'w' to listOf("10001", "10001", "10101", "11011", "10001"),
-            'x' to listOf("10001", "01010", "00100", "01010", "10001"),
-            'y' to listOf("10001", "01010", "00100", "00100", "00100"),
-            'z' to listOf("11111", "00010", "00100", "01000", "11111")
+        private const val BRAILLE_DOT_STEP = 1
+        private const val BRAILLE_CELL_WIDTH = 2
+        private const val BRAILLE_CELL_HEIGHT = 4
+        private const val BRAILLE_CELL_STRIDE = 4
+        private const val TRAY_CHARACTER_LIMIT = 24
+        private val numberSignDots = setOf(3, 4, 5, 6)
+
+        private val unicodeBrailleCells = mapOf(
+            'a' to '\u2801',
+            'b' to '\u2803',
+            'c' to '\u2809',
+            'd' to '\u2819',
+            'e' to '\u2811',
+            'f' to '\u280b',
+            'g' to '\u281b',
+            'h' to '\u2813',
+            'i' to '\u280a',
+            'j' to '\u281a',
+            'k' to '\u2805',
+            'l' to '\u2807',
+            'm' to '\u280d',
+            'n' to '\u281d',
+            'o' to '\u2815',
+            'p' to '\u280f',
+            'q' to '\u281f',
+            'r' to '\u2817',
+            's' to '\u280e',
+            't' to '\u281e',
+            'u' to '\u2825',
+            'v' to '\u2827',
+            'w' to '\u283a',
+            'x' to '\u282d',
+            'y' to '\u283d',
+            'z' to '\u2835'
+        )
+
+        private val numberDots = mapOf(
+            '1' to setOf(1),
+            '2' to setOf(1, 2),
+            '3' to setOf(1, 4),
+            '4' to setOf(1, 4, 5),
+            '5' to setOf(1, 5),
+            '6' to setOf(1, 2, 4),
+            '7' to setOf(1, 2, 4, 5),
+            '8' to setOf(1, 2, 5),
+            '9' to setOf(2, 4),
+            '0' to setOf(2, 4, 5)
         )
     }
 }

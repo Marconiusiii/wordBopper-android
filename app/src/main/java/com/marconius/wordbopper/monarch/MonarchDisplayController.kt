@@ -29,9 +29,15 @@ class MonarchDisplayController(
     private val viewedImage = MutableLiveData<Array<ByteArray>>()
     private var servicesBound = false
     private var renderJob: Job? = null
+    private var announcementJob: Job? = null
+    private var delayedStatusJob: Job? = null
     private var lastFrameKey = ""
+    private var latestStatusText = ""
+    private var submittedWordWaitingForStatus = false
 
     fun create() {
+        activity.title = ""
+        viewModel.setBoardSize(MONARCH_COLUMNS, MONARCH_ROWS)
         manager = SelfBraillingManager(activity).apply { bindService() }
         servicesBound = true
         widget = SelfBraillingWidget(activity).also { activity.setContentView(it) }
@@ -54,8 +60,14 @@ class MonarchDisplayController(
         }
 
         manager.announceText("WordBopper")
+        viewModel.audio.playRoundStartSound()
         refresh(force = true)
+        lifecycleScope.launch {
+            delay(INITIAL_REFRESH_DELAY_MS)
+            refresh(force = true)
+        }
         startRenderLoop()
+        startAnnouncementRelay()
     }
 
     fun resume() {
@@ -65,11 +77,16 @@ class MonarchDisplayController(
             refresh(force = true)
         }
         startRenderLoop()
+        startAnnouncementRelay()
     }
 
     fun stop() {
         renderJob?.cancel()
         renderJob = null
+        announcementJob?.cancel()
+        announcementJob = null
+        delayedStatusJob?.cancel()
+        delayedStatusJob = null
         if (servicesBound) {
             servicesBound = false
             manager.unbindService()
@@ -91,6 +108,7 @@ class MonarchDisplayController(
             KeyEvent.KEYCODE_DEL,
             KeyEvent.KEYCODE_FORWARD_DEL,
             KeyEvent.KEYCODE_ESCAPE -> {
+                clearStatusText()
                 viewModel.clearSelection()
                 refresh(force = true)
                 true
@@ -110,9 +128,26 @@ class MonarchDisplayController(
 
     private fun handlePrimaryAction() {
         when (viewModel.screen) {
-            GameScreen.START -> viewModel.startGame()
-            GameScreen.GAME -> viewModel.makeWord()
-            GameScreen.RESULTS -> viewModel.goHome()
+            GameScreen.START -> {
+                clearStatusText()
+                manager.announceText("Starting game")
+                viewModel.startGame()
+            }
+            GameScreen.GAME -> {
+                val submittedWord = viewModel.currentWord.lowercase()
+                if (submittedWord.isNotBlank()) {
+                    delayedStatusJob?.cancel()
+                    submittedWordWaitingForStatus = true
+                    latestStatusText = submittedWord
+                }
+                manager.announceText("Make word $submittedWord")
+                viewModel.makeWord()
+            }
+            GameScreen.RESULTS -> {
+                clearStatusText()
+                manager.announceText("Home")
+                viewModel.goHome()
+            }
         }
         refresh(force = true)
     }
@@ -124,9 +159,20 @@ class MonarchDisplayController(
         }
 
         val adjustedX = if (pointX >= TOUCH_X_OFFSET) pointX - TOUCH_X_OFFSET else pointX
-        val (row, col) = renderer.tappedCell(adjustedX, pointY) ?: return
+        val (row, col) = renderer.tappedCell(
+            adjustedX,
+            pointY,
+            viewModel.boardColumns,
+            viewModel.boardRows
+        ) ?: return
         val bubble = viewModel.bubbles.firstOrNull { it.row == row && it.col == col } ?: return
+        val wasSelected = viewModel.isSelected(bubble)
         viewModel.tapBubble(bubble)
+        latestStatusText = viewModel.currentWord
+        val action = if (wasSelected) "Deselected" else "Selected"
+        manager.announceText(
+            "$action ${bubble.letter.lowercase()}, ${col + 1} ${row + 1}. Word ${viewModel.currentWord.lowercase()}"
+        )
         refresh(force = true)
     }
 
@@ -140,11 +186,49 @@ class MonarchDisplayController(
         }
     }
 
+    private fun startAnnouncementRelay() {
+        if (announcementJob?.isActive == true) return
+        announcementJob = lifecycleScope.launch {
+            viewModel.announcementEvent.collect { message ->
+                val monarchMessage = toMonarchAnnouncement(message)
+                if (submittedWordWaitingForStatus) {
+                    delayedStatusJob?.cancel()
+                    delayedStatusJob = launch {
+                        delay(SUBMITTED_WORD_HOLD_MS)
+                        submittedWordWaitingForStatus = false
+                        latestStatusText = monarchMessage
+                        refresh(force = true)
+                    }
+                } else {
+                    latestStatusText = monarchMessage
+                    refresh(force = true)
+                }
+                manager.announceText(monarchMessage)
+            }
+        }
+    }
+
+    private fun clearStatusText() {
+        delayedStatusJob?.cancel()
+        submittedWordWaitingForStatus = false
+        latestStatusText = ""
+    }
+
+    private fun toMonarchAnnouncement(message: String): String {
+        return message
+            .trim()
+            .removeSuffix(".")
+            .replace(Regex("\\b(\\d+) points\\b"), "$1pts")
+            .replace(Regex("\\b1 point\\b"), "1pt")
+            .replace("chain bonus", "cb")
+            .replace(",", "")
+    }
+
     private fun refresh(force: Boolean = false) {
         val frameKey = buildFrameKey()
         if (!force && frameKey == lastFrameKey) return
         lastFrameKey = frameKey
-        val dots = renderer.render(viewModel)
+        val dots = renderer.render(viewModel, latestStatusText)
         viewedImage.value = dots
         liveDots.value = DotsMatrix(dots).matrix
     }
@@ -160,12 +244,18 @@ class MonarchDisplayController(
             append(viewModel.bubbles.joinToString("") { it.letter + it.id.toString().take(4) })
             append('|')
             append(viewModel.selected.joinToString("") { it.bubbleId.toString().take(4) })
+            append('|')
+            append(latestStatusText)
         }
     }
 
     companion object {
         private const val TOUCH_X_OFFSET = 3
+        private const val MONARCH_COLUMNS = 6
+        private const val MONARCH_ROWS = 5
         private const val RENDER_INTERVAL_MS = 150L
+        private const val INITIAL_REFRESH_DELAY_MS = 1000L
+        private const val SUBMITTED_WORD_HOLD_MS = 5000L
 
         fun shouldUseMonarchMode(): Boolean {
             val deviceInfo = listOf(

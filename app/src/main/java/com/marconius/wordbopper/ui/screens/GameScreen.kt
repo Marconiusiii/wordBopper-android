@@ -121,12 +121,14 @@ fun GameScreen(vm: GameViewModel) {
                 .weight(1f)
                 .padding(horizontal = 4.dp, vertical = 6.dp)
         ) {
-            val cellSize = minOf(maxWidth / 5, maxHeight / 5).coerceAtLeast(44.dp)
+            val cellSize = minOf(maxWidth / vm.boardColumns, maxHeight / vm.boardRows).coerceAtLeast(44.dp)
 
             BubbleGrid(
                 bubbles = vm.bubbles,
                 selectedIds = selectedIds,
                 cellSize = cellSize,
+                columns = vm.boardColumns,
+                rows = vm.boardRows,
                 textColorOption = vm.bubbleTextColorOption,
                 speakLetterPositions = vm.speakLetterPositions,
                 speakLetterPhonetics = vm.speakLetterPhonetics,

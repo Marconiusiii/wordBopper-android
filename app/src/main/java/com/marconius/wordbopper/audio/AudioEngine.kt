@@ -1,8 +1,12 @@
 package com.marconius.wordbopper.audio
 
+import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioTrack
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,20 +26,24 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.tanh
 
-class AudioEngine(private val scope: CoroutineScope) {
+class AudioEngine(
+    private val scope: CoroutineScope,
+    context: Context
+) {
 
     private val sampleRate = 44100
     private var selectNoteIndex = 0
     private var powerUpJob: Job? = null
     private val activeTracks = CopyOnWriteArrayList<AudioTrack>()
+    private val audioManager = context.getSystemService(AudioManager::class.java)
 
     private val audioAttributes = AudioAttributes.Builder()
-        .setUsage(AudioAttributes.USAGE_GAME)
+        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
 
     private val audioFormat = AudioFormat.Builder()
-        .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
         .setSampleRate(sampleRate)
         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
         .build()
@@ -267,23 +275,47 @@ class AudioEngine(private val scope: CoroutineScope) {
     private fun play(samples: FloatArray) {
         scope.launch(Dispatchers.IO) {
             try {
-                val minBuf = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT)
-                val bufBytes = max(samples.size * 4, minBuf)
+                val shorts = samples.toShortArray()
+                val minBuf = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+                val bufBytes = max(shorts.size * 2, minBuf)
                 val track = AudioTrack.Builder()
                     .setAudioAttributes(audioAttributes)
                     .setAudioFormat(audioFormat)
                     .setBufferSizeInBytes(bufBytes)
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build()
+                preferredOutputDevice()?.let { device ->
+                    if (!track.setPreferredDevice(device)) {
+                        Log.w(TAG, "AudioTrack did not accept preferred output device: ${device.productName}")
+                    }
+                }
                 activeTracks.add(track)
-                track.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
+                track.write(shorts, 0, shorts.size, AudioTrack.WRITE_BLOCKING)
                 track.play()
-                delay((samples.size.toLong() * 1000L / sampleRate) + 80L)
+                delay((shorts.size.toLong() * 1000L / sampleRate) + 80L)
                 track.stop()
                 track.release()
                 activeTracks.remove(track)
-            } catch (_: Exception) {}
+            } catch (exception: Exception) {
+                Log.w(TAG, "Unable to play generated audio", exception)
+            }
         }
+    }
+
+    private fun preferredOutputDevice(): AudioDeviceInfo? {
+        return audioManager
+            ?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            ?.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+    }
+
+    private fun FloatArray.toShortArray(): ShortArray {
+        return ShortArray(size) { index ->
+            (this[index].coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort()
+        }
+    }
+
+    private companion object {
+        private const val TAG = "WordBopperAudio"
     }
 }
 

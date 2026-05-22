@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<keymapping>
+    <application package="com.marconius.WordBopper">
+        <context viewIdResourceName="SelfBraillingWidget">
+            <action name="substitute">
+                <command
+                    commandId="enter"
+                    param="66">
+                    <key>Dots8</key>
+                </command>
+                <command
+                    commandId="clear_letters"
+                    param="67">
+                    <key>Dots7</key>
+                </command>
+            </action>
+        </context>
+    </application>
+</keymapping>

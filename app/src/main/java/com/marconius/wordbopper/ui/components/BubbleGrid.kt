@@ -51,6 +51,8 @@ fun BubbleGrid(
     bubbles: List<Bubble>,
     selectedIds: Set<java.util.UUID>,
     cellSize: Dp,
+    columns: Int,
+    rows: Int,
     textColorOption: BubbleTextColorOption,
     speakLetterPositions: Boolean,
     speakLetterPhonetics: Boolean,
@@ -58,14 +60,14 @@ fun BubbleGrid(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        for (row in 0 until 5) {
+        for (row in 0 until rows) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                for (col in 0 until 5) {
-                    val bubble = bubbles[row * 5 + col]
+                for (col in 0 until columns) {
+                    val bubble = bubbles.getOrNull(row * columns + col) ?: continue
                     val isSelected = selectedIds.contains(bubble.id)
                     BubbleCell(
                         bubble = bubble,

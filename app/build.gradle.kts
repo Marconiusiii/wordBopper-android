@@ -14,6 +14,9 @@ val keystoreProperties = Properties().apply {
 val isReleaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
     taskName.contains("release", ignoreCase = true)
 }
+val hasReleaseSigningConfig = listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all {
+    keystoreProperties.getProperty(it)?.isNotBlank() == true
+}
 
 android {
     namespace = "com.marconius.wordbopper"
@@ -34,7 +37,7 @@ android {
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (hasReleaseSigningConfig) {
             create("release") {
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
                 storePassword = keystoreProperties.getProperty("storePassword")
@@ -52,11 +55,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (keystorePropertiesFile.exists()) {
+            if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
             } else if (isReleaseTaskRequested) {
                 throw GradleException(
-                    "Missing keystore.properties at project root. Add it with your upload key values before running release tasks."
+                    "Missing release signing values in keystore.properties. Add storeFile, storePassword, keyAlias, and keyPassword before running release tasks."
                 )
             }
         }

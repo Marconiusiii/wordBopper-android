@@ -57,7 +57,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val dictionary = DictionaryService.getInstance(application)
     private val prefs: SharedPreferences =
         application.getSharedPreferences("word_bopper", Context.MODE_PRIVATE)
-    val audio = AudioEngine(viewModelScope)
+    val audio = AudioEngine(viewModelScope, application)
 
     private val _announcementEvent = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val announcementEvent: SharedFlow<String> = _announcementEvent.asSharedFlow()
@@ -84,6 +84,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val bubbles = mutableStateListOf<Bubble>()
     val selected = mutableStateListOf<SelectedLetter>()
     val madeWords = mutableStateListOf<String>()
+    var boardColumns by mutableIntStateOf(5)
+        private set
+    var boardRows by mutableIntStateOf(5)
+        private set
     var score by mutableIntStateOf(0)
         private set
     var wordCount by mutableIntStateOf(0)
@@ -194,6 +198,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     // MARK: - Game lifecycle
 
+    fun setBoardSize(columns: Int, rows: Int) {
+        if (gameActive) return
+        boardColumns = columns.coerceIn(3, 8)
+        boardRows = rows.coerceIn(3, 8)
+    }
+
     fun startGame() {
         bubbles.clear()
         selected.clear()
@@ -210,9 +220,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         largestLetterChain = 0
         gameplayHeading = randomGameplayHeading()
 
-        for (row in 0 until 5) {
-            for (col in 0 until 5) {
-                bubbles.add(Bubble(letter = randomLetter(), colorIndex = randomColor(), row = row, col = col))
+        for (row in 0 until boardRows) {
+            for (col in 0 until boardColumns) {
+                bubbles.add(Bubble(letter = randomLetter(row, col), colorIndex = randomColor(), row = row, col = col))
             }
         }
 
@@ -447,10 +457,42 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val idx = bubbles.indexOfFirst { it.id == id }
         if (idx < 0) return
         val old = bubbles[idx]
-        bubbles[idx] = Bubble(letter = randomLetter(), colorIndex = randomColor(), row = old.row, col = old.col)
+        bubbles[idx] = Bubble(
+            letter = randomLetter(old.row, old.col, replacingId = old.id),
+            colorIndex = randomColor(),
+            row = old.row,
+            col = old.col
+        )
     }
 
-    private fun randomLetter() = LETTER_POOL.random()
+    private fun randomLetter(row: Int, col: Int, replacingId: UUID? = null): String {
+        repeat(12) {
+            val candidate = LETTER_POOL.random()
+            if (!hasAdjacentLetter(candidate, row, col, replacingId)) return candidate
+        }
+
+        val adjacentLetters = bubbles
+            .filter { bubble ->
+                bubble.id != replacingId &&
+                    abs(bubble.row - row) <= 1 &&
+                    abs(bubble.col - col) <= 1 &&
+                    (bubble.row != row || bubble.col != col)
+            }
+            .map { it.letter }
+            .toSet()
+        return LETTER_POOL.filterNot { it in adjacentLetters }.ifEmpty { LETTER_POOL }.random()
+    }
+
+    private fun hasAdjacentLetter(letter: String, row: Int, col: Int, replacingId: UUID?): Boolean {
+        return bubbles.any { bubble ->
+            bubble.id != replacingId &&
+                bubble.letter == letter &&
+                abs(bubble.row - row) <= 1 &&
+                abs(bubble.col - col) <= 1 &&
+                (bubble.row != row || bubble.col != col)
+        }
+    }
+
     private fun randomColor() = (0 until COLOR_COUNT).random()
     private fun randomGameplayHeading() = if (gameMode == GameMode.BOPPLE)
         BOPPLE_GAMEPLAY_HEADINGS.random() else GAMEPLAY_HEADINGS.random()
