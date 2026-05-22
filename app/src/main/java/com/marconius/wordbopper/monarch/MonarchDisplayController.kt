@@ -113,6 +113,14 @@ class MonarchDisplayController(
                 refresh(force = true)
                 true
             }
+            KeyEvent.KEYCODE_B -> {
+                if (viewModel.screen == GameScreen.START) {
+                    toggleBopAway()
+                    true
+                } else {
+                    false
+                }
+            }
             KeyEvent.KEYCODE_BACK -> {
                 if (viewModel.screen == GameScreen.GAME) {
                     viewModel.endGame()
@@ -169,10 +177,16 @@ class MonarchDisplayController(
         val wasSelected = viewModel.isSelected(bubble)
         viewModel.tapBubble(bubble)
         latestStatusText = viewModel.currentWord
-        val action = if (wasSelected) "Deselected" else "Selected"
-        manager.announceText(
-            "$action ${bubble.letter.lowercase()}, ${col + 1} ${row + 1}. Word ${viewModel.currentWord.lowercase()}"
-        )
+        if (viewModel.bopAwayIsActive) {
+            manager.announceText(
+                "Added ${bubble.letter.lowercase()}, ${col + 1} ${row + 1}. Word ${viewModel.currentWord.lowercase()}"
+            )
+        } else {
+            val action = if (wasSelected) "Deselected" else "Selected"
+            manager.announceText(
+                "$action ${bubble.letter.lowercase()}, ${col + 1} ${row + 1}. Word ${viewModel.currentWord.lowercase()}"
+            )
+        }
         refresh(force = true)
     }
 
@@ -190,22 +204,30 @@ class MonarchDisplayController(
         if (announcementJob?.isActive == true) return
         announcementJob = lifecycleScope.launch {
             viewModel.announcementEvent.collect { message ->
-                val monarchMessage = toMonarchAnnouncement(message)
+                val trayText = toMonarchTrayText(message)
                 if (submittedWordWaitingForStatus) {
                     delayedStatusJob?.cancel()
                     delayedStatusJob = launch {
                         delay(SUBMITTED_WORD_HOLD_MS)
                         submittedWordWaitingForStatus = false
-                        latestStatusText = monarchMessage
+                        latestStatusText = trayText
                         refresh(force = true)
                     }
                 } else {
-                    latestStatusText = monarchMessage
+                    latestStatusText = trayText
                     refresh(force = true)
                 }
-                manager.announceText(monarchMessage)
+                manager.announceText(message)
             }
         }
+    }
+
+    private fun toggleBopAway() {
+        val enabled = !viewModel.bopAway
+        viewModel.setBopAway(enabled)
+        clearStatusText()
+        manager.announceText(if (enabled) "BopAway on" else "BopAway off")
+        refresh(force = true)
     }
 
     private fun clearStatusText() {
@@ -214,7 +236,7 @@ class MonarchDisplayController(
         latestStatusText = ""
     }
 
-    private fun toMonarchAnnouncement(message: String): String {
+    private fun toMonarchTrayText(message: String): String {
         return message
             .trim()
             .removeSuffix(".")

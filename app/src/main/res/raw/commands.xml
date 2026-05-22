@@ -13,6 +13,11 @@
                     param="67">
                     <key>Dots7</key>
                 </command>
+                <command
+                    commandId="toggle_bopaway"
+                    param="30">
+                    <key>Dots12</key>
+                </command>
             </action>
         </context>
     </application>

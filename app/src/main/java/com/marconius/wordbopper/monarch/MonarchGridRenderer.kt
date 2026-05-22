@@ -18,7 +18,7 @@ class MonarchGridRenderer(
     fun render(viewModel: GameViewModel, statusText: String = ""): Array<ByteArray> {
         val dots = blank()
         when (viewModel.screen) {
-            GameScreen.START -> renderStart(dots)
+            GameScreen.START -> renderStart(dots, viewModel)
             GameScreen.GAME -> renderGame(dots, viewModel, statusText)
             GameScreen.RESULTS -> renderResults(dots, viewModel)
         }
@@ -27,15 +27,20 @@ class MonarchGridRenderer(
 
     fun tappedCell(pointX: Int, pointY: Int, columns: Int, rows: Int): Pair<Int, Int>? {
         if (pointX !in 0 until width || pointY < gameplayTop || pointY >= height) return null
-        val col = ((pointX * columns) / width).coerceIn(0, columns - 1)
-        val row = (((pointY - gameplayTop) * rows) / gameplayHeight).coerceIn(0, rows - 1)
+        val cellWidth = width / columns
+        val cellHeight = gameplayHeight / rows
+        val col = (pointX / cellWidth).coerceIn(0, columns - 1)
+        val row = ((pointY - gameplayTop) / cellHeight).coerceIn(0, rows - 1)
         return row to col
     }
 
-    private fun renderStart(dots: Array<ByteArray>) {
+    private fun renderStart(dots: Array<ByteArray>, viewModel: GameViewModel) {
         drawBrailleText(dots, "word", 42, 5)
         drawBrailleText(dots, "bopper", 39, 16)
-        drawBrailleText(dots, "enter", 40, 30)
+        if (viewModel.bopAway) {
+            drawBrailleText(dots, "bopaway on", 28, 26)
+        }
+        drawBrailleText(dots, "enter", 40, 32)
     }
 
     private fun renderGame(dots: Array<ByteArray>, viewModel: GameViewModel, statusText: String) {

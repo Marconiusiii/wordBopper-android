@@ -1,69 +1,46 @@
-# Gradle files
+# Gradle and Android build output
 .gradle/
 build/
-reference-ios/
-
-# Local configuration file (sdk path, etc)
-local.properties
-
-# Log/OS Files
-*.log
-
-# Android Studio generated files and folders
+**/build/
 captures/
 .externalNativeBuild/
 .cxx/
-*.aab
-*.apk
 output-metadata.json
+*.apk
+*.aab
+*.ap_
+*.dex
 
-# IntelliJ
+# Local Android and IDE configuration
+local.properties
 *.iml
 .idea/
-misc.xml
-deploymentTargetDropDown.xml
-render.experimental.xml
+.kotlin/
 
-# Keystore files
+# Signing keys, Play Console credentials, and private properties
+keystore.properties
 *.jks
 *.keystore
-keystore.properties
-
-# Google Services (e.g. APIs or Firebase)
+*.p12
+*.pfx
+*.pem
+*.key
+play-console*.json
+google-play*.json
+service-account*.json
 google-services.json
 
-# Android Profiling
+# Logs, profiling, and crash artifacts
+*.log
 *.hprof
-._.DS_Store
+hs_err_pid*
+
+# OS files
+.DS_Store
 **/.DS_Store
+._.DS_Store
 **/._.DS_Store
-.DS_Store*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+
+# Local reference material
+reference-ios/
+.claude/
