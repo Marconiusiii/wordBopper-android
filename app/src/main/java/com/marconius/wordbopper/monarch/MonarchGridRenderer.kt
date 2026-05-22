@@ -29,9 +29,40 @@ class MonarchGridRenderer(
         if (pointX !in 0 until width || pointY < gameplayTop || pointY >= height) return null
         val cellWidth = width / columns
         val cellHeight = gameplayHeight / rows
-        val col = (pointX / cellWidth).coerceIn(0, columns - 1)
-        val row = ((pointY - gameplayTop) / cellHeight).coerceIn(0, rows - 1)
+        val col = nearestCellIndex(
+            coordinate = pointX,
+            cellSize = cellWidth,
+            count = columns,
+            finalExtent = width
+        )
+        val row = nearestCellIndex(
+            coordinate = pointY - gameplayTop,
+            cellSize = cellHeight,
+            count = rows,
+            finalExtent = gameplayHeight
+        )
         return row to col
+    }
+
+    private fun nearestCellIndex(
+        coordinate: Int,
+        cellSize: Int,
+        count: Int,
+        finalExtent: Int
+    ): Int {
+        var nearestIndex = 0
+        var nearestDistance = Int.MAX_VALUE
+        for (index in 0 until count) {
+            val left = index * cellSize
+            val right = if (index == count - 1) finalExtent - 1 else left + cellSize - 1
+            val center = left + ((right - left) / 2)
+            val distance = kotlin.math.abs(coordinate - center)
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearestIndex = index
+            }
+        }
+        return nearestIndex
     }
 
     private fun renderStart(dots: Array<ByteArray>, viewModel: GameViewModel) {

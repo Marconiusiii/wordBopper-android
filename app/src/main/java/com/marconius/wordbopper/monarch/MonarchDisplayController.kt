@@ -272,7 +272,7 @@ class MonarchDisplayController(
     }
 
     companion object {
-        private const val TOUCH_X_OFFSET = 3
+        private const val TOUCH_X_OFFSET = 1
         private const val MONARCH_COLUMNS = 6
         private const val MONARCH_ROWS = 5
         private const val RENDER_INTERVAL_MS = 150L
