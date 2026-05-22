@@ -27,6 +27,7 @@ class MonarchGridRenderer(
 
     fun tappedCell(pointX: Int, pointY: Int, columns: Int, rows: Int): Pair<Int, Int>? {
         if (pointX !in 0 until width || pointY < gameplayTop || pointY >= height) return null
+        glyphHitCell(pointX, pointY, columns, rows)?.let { return it }
         val cellWidth = width / columns
         val cellHeight = gameplayHeight / rows
         val col = nearestCellIndex(
@@ -42,6 +43,49 @@ class MonarchGridRenderer(
             finalExtent = gameplayHeight
         )
         return row to col
+    }
+
+    private fun glyphHitCell(pointX: Int, pointY: Int, columns: Int, rows: Int): Pair<Int, Int>? {
+        var nearest: Pair<Int, Int>? = null
+        var nearestDistance = Int.MAX_VALUE
+        for (row in 0 until rows) {
+            for (col in 0 until columns) {
+                val bounds = glyphBounds(row, col, columns, rows)
+                if (pointX in bounds.left..bounds.right && pointY in bounds.top..bounds.bottom) {
+                    val distance = squaredDistance(pointX, pointY, bounds.centerX, bounds.centerY)
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance
+                        nearest = row to col
+                    }
+                }
+            }
+        }
+        return nearest
+    }
+
+    private fun glyphBounds(row: Int, col: Int, columns: Int, rows: Int): GlyphBounds {
+        val cellWidth = width / columns
+        val cellHeight = gameplayHeight / rows
+        val cellLeft = col * cellWidth
+        val cellTop = gameplayTop + row * cellHeight
+        val cellRight = if (col == columns - 1) width - 1 else cellLeft + cellWidth - 1
+        val cellBottom = if (row == rows - 1) height - 1 else cellTop + cellHeight - 1
+        val glyphLeft = cellLeft + ((cellRight - cellLeft - BRAILLE_CELL_WIDTH) / 2)
+        val glyphTop = cellTop + ((cellBottom - cellTop - BRAILLE_CELL_HEIGHT) / 2)
+        return GlyphBounds(
+            left = (glyphLeft - GLYPH_TOUCH_HALO_X).coerceAtLeast(cellLeft),
+            top = (glyphTop - GLYPH_TOUCH_HALO_Y).coerceAtLeast(cellTop),
+            right = (glyphLeft + BRAILLE_CELL_WIDTH - 1 + GLYPH_TOUCH_HALO_X).coerceAtMost(cellRight),
+            bottom = (glyphTop + BRAILLE_CELL_HEIGHT - 1 + GLYPH_TOUCH_HALO_Y).coerceAtMost(cellBottom),
+            centerX = glyphLeft + ((BRAILLE_CELL_WIDTH - 1) / 2),
+            centerY = glyphTop + ((BRAILLE_CELL_HEIGHT - 1) / 2)
+        )
+    }
+
+    private fun squaredDistance(x: Int, y: Int, centerX: Int, centerY: Int): Int {
+        val dx = x - centerX
+        val dy = y - centerY
+        return dx * dx + dy * dy
     }
 
     private fun nearestCellIndex(
@@ -200,6 +244,8 @@ class MonarchGridRenderer(
         private const val BRAILLE_CELL_WIDTH = 2
         private const val BRAILLE_CELL_HEIGHT = 4
         private const val BRAILLE_CELL_STRIDE = 4
+        private const val GLYPH_TOUCH_HALO_X = 5
+        private const val GLYPH_TOUCH_HALO_Y = 2
         private const val TRAY_CHARACTER_LIMIT = 24
         private val numberSignDots = setOf(3, 4, 5, 6)
 
@@ -246,3 +292,12 @@ class MonarchGridRenderer(
         )
     }
 }
+
+private data class GlyphBounds(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+    val centerX: Int,
+    val centerY: Int
+)
