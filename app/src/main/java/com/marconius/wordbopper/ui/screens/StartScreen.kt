@@ -429,21 +429,20 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
                 .semantics { heading() }
         )
 
-        SettingsSectionLabel("Game Mode")
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            GameMode.values().forEachIndexed { index, mode ->
-                SegmentedButton(
-                    selected = vm.gameMode == mode,
-                    onClick = { vm.setGameMode(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(index, GameMode.values().size)
-                ) {
-                    Text(mode.label)
+        SettingsPickerBlock(title = "Game Mode") {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                GameMode.values().forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = vm.gameMode == mode,
+                        onClick = { vm.setGameMode(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index, GameMode.values().size)
+                    ) {
+                        Text(mode.label)
+                    }
                 }
             }
         }
         SettingsDescription(vm.gameMode.settingsBlurb)
-
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
         SettingsDropdown(
             title = "Bubble Language",
@@ -452,7 +451,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         )
         SettingsDescription("Choose the language you want to Bop in. The rest of the app stays in English for now.")
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+        SettingsSectionLabel("Letter Positions")
 
         SettingsToggleRow(
             title = "Speak Letter Positions",
@@ -461,6 +460,8 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         )
         SettingsDescription("Adds Column and Row locations to the letters, like \"B, 2 5\" for Column 2, Row 5.")
 
+        SettingsSectionLabel("Letter Phonetics")
+
         SettingsToggleRow(
             title = "Speak Letter Phonetics",
             checked = vm.speakLetterPhonetics,
@@ -468,62 +469,59 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         )
         SettingsDescription("Adds the phonetic version of the bubble letters to the announcement, such as \"a, Alpha.\"")
 
+        SettingsSectionLabel("BopAway")
+
         SettingsToggleRow(
             title = "BopAway",
             checked = vm.bopAway,
             onCheckedChange = { vm.setBopAway(it) }
         )
-        SettingsDescription("For an extra challenge, BopAway instantly moves each bopped letter into the Word Tray and replaces it with a new letter in the grid. If you clear the word, those letters will be lost. Bop Wisely!")
+        SettingsDescription("For an extra challenge, BopAway instantly moves each tapped letter into the word tray and replaces it with a new letter. If you clear the word, those letters are lost. Bop wisely!")
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
-
-        SettingsSectionLabel("Bubble Letter Style")
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            BubbleLetterStyle.values().forEachIndexed { index, style ->
-                SegmentedButton(
-                    selected = vm.bubbleLetterStyle == style,
-                    onClick = { vm.setBubbleLetterStyle(style) },
-                    shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.values().size)
-                ) {
-                    Text(style.label, fontFamily = style.fontFamily)
+        SettingsPickerBlock(title = "Bubble Letter Style") {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                BubbleLetterStyle.values().forEachIndexed { index, style ->
+                    SegmentedButton(
+                        selected = vm.bubbleLetterStyle == style,
+                        onClick = { vm.setBubbleLetterStyle(style) },
+                        shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.values().size)
+                    ) {
+                        Text(style.label, fontFamily = style.fontFamily)
+                    }
                 }
             }
         }
         SettingsDescription("Choose the letter shape that is easiest for you to read in the bubbles and word tray.")
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
-
-        SettingsSectionLabel("Bubble Text Color")
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            BubbleTextColorOption.values().forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = vm.bubbleTextColorOption == option,
-                    onClick = { vm.setBubbleTextColorOption(option) },
-                    shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.values().size)
-                ) {
-                    Text(option.label)
+        SettingsPickerBlock(title = "Bubble Text Color") {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                BubbleTextColorOption.values().forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = vm.bubbleTextColorOption == option,
+                        onClick = { vm.setBubbleTextColorOption(option) },
+                        shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.values().size)
+                    ) {
+                        Text(option.label)
+                    }
                 }
             }
         }
         SettingsDescription("Pick your preference of light or dark text for the bubbles. Either option will still have colorful bubbles to bop!")
 
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
-
-        SettingsSectionLabel("Game Announcements")
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            GameAnnouncementVerbosity.values().forEachIndexed { index, verbosity ->
-                SegmentedButton(
-                    selected = vm.gameAnnouncementVerbosity == verbosity,
-                    onClick = { vm.setGameAnnouncementVerbosity(verbosity) },
-                    shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.values().size)
-                ) {
-                    Text(verbosity.label)
+        SettingsPickerBlock(title = "Game Announcements") {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                GameAnnouncementVerbosity.values().forEachIndexed { index, verbosity ->
+                    SegmentedButton(
+                        selected = vm.gameAnnouncementVerbosity == verbosity,
+                        onClick = { vm.setGameAnnouncementVerbosity(verbosity) },
+                        shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.values().size)
+                    ) {
+                        Text(verbosity.label)
+                    }
                 }
             }
         }
         SettingsDescription("Controls spoken game announcements for scoring, invalid words, and cleared letters.")
-
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
         Row(
             modifier = Modifier
@@ -567,7 +565,37 @@ private fun SettingsSectionLabel(text: String) {
             .fillMaxWidth()
             .heightIn(min = 44.dp)
             .padding(horizontal = 24.dp, vertical = 10.dp)
+            .semantics { heading() }
     )
+}
+
+@Composable
+private fun SettingsPickerBlock(title: String, content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 44.dp)
+                .semantics { heading() }
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 44.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            content()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -579,38 +607,38 @@ private fun SettingsDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    SettingsSectionLabel(title)
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-    ) {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            label = { Text(title) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                .fillMaxWidth()
-        )
-        ExposedDropdownMenu(
+    SettingsPickerBlock(title = title) {
+        ExposedDropdownMenuBox(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier
+                .fillMaxWidth()
         ) {
-            options.forEach { (label, action) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    onClick = {
-                        expanded = false
-                        action()
-                    }
-                )
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                label = { Text(title) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { (label, action) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            expanded = false
+                            action()
+                        }
+                    )
+                }
             }
         }
     }
