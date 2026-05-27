@@ -773,11 +773,19 @@ More information about COCA is available at https://www.english-corpora.org/coca
 
 The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.
 
+The English word list also includes words from the Wordnik Wordlist, an open-source word list for game developers.
+
+Wordnik Wordlist copyright 2020 Wordnik. The Wordnik Wordlist is made available under the MIT License. Permission is granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense, and sell copies, provided that the copyright notice and permission notice are included in copies or substantial portions of the software.
+
 The Spanish, French, and German word lists are derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
 
 The Italian word list includes words derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
 
-The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta.""",
+The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta.
+
+Morph-it! is dual-licensed under the Creative Commons Attribution ShareAlike 2.0 License and the GNU Lesser General Public License. Morph-it! copyright 2004-2007 Marco Baroni and Eros Zanchetta.
+
+The Brazilian Portuguese word list is derived from the pythonprobr/palavras word list, which is based primarily on the LibreOffice Brazilian Portuguese spelling dictionary and made available under the Mozilla Public License 2.0.""",
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
                 color = WbMuted,

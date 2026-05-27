@@ -124,6 +124,23 @@ enum class DictionaryLanguage(
             "u" to "Udine", "v" to "Venezia", "w" to "Washington",
             "x" to "Xilofono", "y" to "Yacht", "z" to "Zara"
         )
+    ),
+    BRAZILIAN_PORTUGUESE(
+        label = "Brazilian Portuguese",
+        rawResourceId = R.raw.words_pt_br,
+        speechLanguage = "pt-BR",
+        letterPoolText = "aaaaaaaaaaaabbcccçddddeeeeeeeeeeffgghhiiiiiiillll" +
+            "mmmnnnnnnooooooooppqrrrrrrssssssttttttuuuuuvvxz",
+        phonetics = mapOf(
+            "a" to "Amor", "b" to "Bola", "c" to "Casa", "ç" to "Cedilha",
+            "d" to "Dado", "e" to "Escola", "f" to "Faca", "g" to "Gato",
+            "h" to "Hotel", "i" to "Ilha", "j" to "Janela", "k" to "Kilo",
+            "l" to "Lua", "m" to "Mesa", "n" to "Navio", "o" to "Olho",
+            "p" to "Pato", "q" to "Queijo", "r" to "Rua", "s" to "Sapo",
+            "t" to "Tatu", "u" to "Uva", "v" to "Vaca",
+            "w" to "Washington", "x" to "Xadrez", "y" to "Yoga",
+            "z" to "Zebra"
+        )
     );
 
     val letterPool: List<String> get() = letterPoolText.map { it.toString() }

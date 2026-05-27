@@ -32,7 +32,8 @@ class DictionaryService private constructor(context: Context) {
             DictionaryLanguage.ENGLISH,
             DictionaryLanguage.ITALIAN -> emptyMap()
             DictionaryLanguage.SPANISH -> mapOf("ñ" to "__WB_NTILDE__")
-            DictionaryLanguage.FRENCH -> mapOf("ç" to "__WB_CCEDILLA__")
+            DictionaryLanguage.FRENCH,
+            DictionaryLanguage.BRAZILIAN_PORTUGUESE -> mapOf("ç" to "__WB_CCEDILLA__")
             DictionaryLanguage.GERMAN -> mapOf("ß" to "__WB_ESZETT__")
         }
 
