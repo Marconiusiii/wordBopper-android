@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun GameScreen(vm: GameViewModel) {
@@ -78,6 +79,7 @@ fun GameScreen(vm: GameViewModel) {
         Text(
             text = vm.gameplayHeading,
             fontSize = 16.sp,
+            lineHeight = 20.sp,
             fontWeight = FontWeight.Black,
             color = WbText,
             modifier = Modifier
@@ -155,14 +157,14 @@ private fun ActionBar(vm: GameViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 88.dp)
+                .heightIn(min = 96.dp)
         ) {
             // Clear button — 34% width
             val clearLabel = vm.clearActionTitle
             Box(
                 modifier = Modifier
                     .weight(0.34f)
-                    .heightIn(min = 88.dp)
+                    .heightIn(min = 96.dp)
                     .clickable { vm.clearSelection() }
                     .clearAndSetSemantics {
                         role = Role.Button
@@ -175,13 +177,15 @@ private fun ActionBar(vm: GameViewModel) {
                 Text(
                     text = clearLabel,
                     fontSize = 14.sp,
+                    lineHeight = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = WbMuted,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .background(WbPanel)
-                        .padding(vertical = 16.dp, horizontal = 12.dp)
+                        .padding(vertical = 18.dp, horizontal = 12.dp)
                         .wrapContentHeight(Alignment.CenterVertically)
                 )
             }
@@ -191,7 +195,7 @@ private fun ActionBar(vm: GameViewModel) {
             Box(
                 modifier = Modifier
                     .weight(0.66f)
-                    .heightIn(min = 88.dp)
+                    .heightIn(min = 96.dp)
                     .clickable(enabled = makeWordEnabled) { vm.makeWord() }
                     .clearAndSetSemantics {
                         role = Role.Button
@@ -204,8 +208,10 @@ private fun ActionBar(vm: GameViewModel) {
                 Text(
                     text = "Make Word",
                     fontSize = 16.sp,
+                    lineHeight = 20.sp,
                     fontWeight = FontWeight.Black,
                     color = if (makeWordEnabled) Color.Black else WbMuted,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
@@ -215,7 +221,7 @@ private fun ActionBar(vm: GameViewModel) {
                             else
                                 Brush.linearGradient(listOf(WbPanel, WbPanel))
                         )
-                        .padding(vertical = 16.dp)
+                        .padding(vertical = 18.dp, horizontal = 12.dp)
                         .wrapContentHeight(Alignment.CenterVertically)
                 )
             }

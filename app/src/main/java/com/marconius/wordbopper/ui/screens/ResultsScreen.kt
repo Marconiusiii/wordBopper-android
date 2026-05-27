@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -76,8 +77,10 @@ fun ResultsScreen(vm: GameViewModel) {
             Text(
                 text = "Round Complete",
                 fontSize = 22.sp,
+                lineHeight = 26.sp,
                 fontWeight = FontWeight.Black,
                 color = WbText,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.semantics {
                     heading()
                     traversalIndex = -1f
@@ -93,13 +96,14 @@ fun ResultsScreen(vm: GameViewModel) {
                 Text(
                     text = "${vm.score}",
                     fontSize = 48.sp,
+                    lineHeight = 54.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     style = androidx.compose.ui.text.TextStyle(
                         brush = Brush.linearGradient(listOf(WbAccent1, WbAccent3))
                     )
                 )
-                Text(text = "points", fontSize = 16.sp, color = WbMuted)
+                Text(text = "points", fontSize = 16.sp, lineHeight = 20.sp, color = WbMuted)
             }
 
             Row(
@@ -129,6 +133,7 @@ fun ResultsScreen(vm: GameViewModel) {
                 Text(
                     text = "Your words",
                     fontSize = 16.sp,
+                    lineHeight = 20.sp,
                     fontWeight = FontWeight.Black,
                     color = WbText,
                     modifier = Modifier.semantics { heading() }
@@ -138,6 +143,7 @@ fun ResultsScreen(vm: GameViewModel) {
                     Text(
                         text = "No words made — try again!",
                         fontSize = 14.sp,
+                        lineHeight = 18.sp,
                         color = WbMuted
                     )
                 } else {
@@ -145,6 +151,7 @@ fun ResultsScreen(vm: GameViewModel) {
                         Text(
                             text = word,
                             fontSize = 14.sp,
+                            lineHeight = 18.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
                             color = WbText,
@@ -211,12 +218,14 @@ private fun ActionButton(
             .then(if (border) Modifier.border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(50)) else Modifier)
             .clickable(onClick = onClick)
             .semantics { role = Role.Button }
-            .padding(vertical = 14.dp),
+            .heightIn(min = 56.dp)
+            .padding(vertical = 14.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
             fontSize = 18.sp,
+            lineHeight = 22.sp,
             fontWeight = FontWeight.Black,
             color = textColor,
             textAlign = TextAlign.Center
@@ -228,12 +237,27 @@ private fun ActionButton(
 private fun ResultStat(value: String, label: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.clearAndSetSemantics {
-            contentDescription = "$label: $value"
-        },
+        contentDescription = "$label: $value"
+    },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, fontSize = 30.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = color)
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = WbMuted, textAlign = TextAlign.Center)
+        Text(
+            value,
+            fontSize = 30.sp,
+            lineHeight = 34.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            color = color,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            label,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbMuted,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

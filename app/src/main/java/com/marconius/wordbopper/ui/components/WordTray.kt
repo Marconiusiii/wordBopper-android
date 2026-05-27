@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.model.BubbleLetterStyle
@@ -62,8 +63,8 @@ fun WordTray(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 40.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                .heightIn(min = 48.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 1.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -72,6 +73,7 @@ fun WordTray(
                     Text(
                         text = "Your word appears here as you bop letters.",
                         fontSize = 14.sp,
+                        lineHeight = 18.sp,
                         color = WbMuted
                     )
                 }
@@ -95,17 +97,20 @@ fun WordTray(
 private fun LetterChip(letter: String, letterStyle: BubbleLetterStyle) {
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .sizeIn(minWidth = 44.dp, minHeight = 44.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(WbAccent4),
+            .background(WbAccent4)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = if (letter == "ß") "ß" else letter.uppercase(),
-            fontSize = 16.sp,
+            fontSize = 18.sp,
+            lineHeight = 20.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = letterStyle.fontFamily,
-            color = androidx.compose.ui.graphics.Color.Black
+            color = androidx.compose.ui.graphics.Color.Black,
+            textAlign = TextAlign.Center
         )
     }
 }

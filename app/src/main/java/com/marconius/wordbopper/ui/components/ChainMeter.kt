@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +27,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.ui.theme.WbAccent1
@@ -58,39 +60,47 @@ fun ChainMeter(
     val displayText = if (chainPowerUpActive) "3x ${chainPowerUpSecondsLeft}s"
     else "$connectedWordStreak/3"
 
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(WbSurface)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clearAndSetSemantics {
                 contentDescription = "Chained words"
                 stateDescription = chainMeterValue
             },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
             text = "Chained Words",
             fontSize = 11.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.Bold,
             color = WbMuted
         )
 
-        FractionBar(
-            fraction = progressFraction,
-            gradient = chainGradient,
-            modifier = Modifier.weight(1f).height(8.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FractionBar(
+                fraction = progressFraction,
+                gradient = chainGradient,
+                modifier = Modifier.weight(1f).height(10.dp)
+            )
 
-        Text(
-            text = displayText,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
-            color = WbAccent5,
-            modifier = Modifier.widthIn(min = 44.dp)
-        )
+            Text(
+                text = displayText,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                color = WbAccent5,
+                textAlign = TextAlign.End,
+                modifier = Modifier.widthIn(min = 52.dp)
+            )
+        }
     }
     HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)
 }

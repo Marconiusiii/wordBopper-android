@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.ui.theme.WbAccent1
@@ -96,8 +97,10 @@ fun StatsBar(
             Text(
                 text = "End Game",
                 fontSize = 14.sp,
+                lineHeight = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = WbAccent2
+                color = WbAccent2,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -110,12 +113,14 @@ private fun StatBlock(label: String, value: String, color: Color, modifier: Modi
         Text(
             text = label,
             fontSize = 11.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.Bold,
             color = WbMuted
         )
         Text(
             text = value,
             fontSize = 22.sp,
+            lineHeight = 26.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
             color = color

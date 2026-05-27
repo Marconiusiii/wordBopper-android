@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -113,12 +114,14 @@ fun StartScreen(vm: GameViewModel) {
             Text(
                 text = "WordBopper",
                 fontSize = 32.sp,
+                lineHeight = 38.sp,
                 fontWeight = FontWeight.Black,
                 color = WbText
             )
             Text(
                 text = "By Chancey Fleet and Marco Salsiccia",
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = WbMuted
             )
@@ -185,8 +188,11 @@ private fun StartGameButton(onClick: () -> Unit) {
         Text(
             text = "Start Game",
             fontSize = 28.sp,
+            lineHeight = 34.sp,
             fontWeight = FontWeight.Black,
-            color = Color.Black
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
     }
 }
@@ -204,6 +210,7 @@ private fun TextLinkButton(text: String, modifier: Modifier = Modifier, onClick:
         Text(
             text = text,
             fontSize = 12.sp,
+            lineHeight = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = WbAccent5,
             textAlign = TextAlign.Center
@@ -245,6 +252,7 @@ private fun BestGameCard(bestGame: BestGame) {
             Text(
                 text = "Your best game",
                 fontSize = 16.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.Black,
                 color = WbText,
                 modifier = Modifier.weight(1f)
@@ -322,8 +330,8 @@ private fun BestStatCell(label: String, value: String, modifier: Modifier = Modi
                 contentDescription = "$label: $value"
             }
     ) {
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = WbMuted)
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = WbText)
+        Text(label, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold, color = WbMuted)
+        Text(value, fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = WbText)
     }
 }
 
@@ -411,6 +419,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         Text(
             text = "Game Settings",
             fontSize = 22.sp,
+            lineHeight = 26.sp,
             fontWeight = FontWeight.Black,
             color = WbText,
             modifier = Modifier
@@ -528,6 +537,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             Text(
                 text = "About WordBopper",
                 fontSize = 16.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = WbAccent5
             )
@@ -551,6 +561,7 @@ private fun SettingsSectionLabel(text: String) {
     Text(
         text = text,
         fontSize = 16.sp,
+        lineHeight = 20.sp,
         color = WbText,
         modifier = Modifier
             .fillMaxWidth()
@@ -585,7 +596,7 @@ private fun SettingsDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                 .fillMaxWidth()
         )
         ExposedDropdownMenu(
@@ -610,6 +621,7 @@ private fun SettingsDescription(text: String) {
     Text(
         text = text,
         fontSize = 12.sp,
+        lineHeight = 16.sp,
         color = WbMuted,
         modifier = Modifier
             .fillMaxWidth()
@@ -639,6 +651,7 @@ private fun SettingsToggleRow(title: String, checked: Boolean, onCheckedChange: 
         Text(
             text = title,
             fontSize = 16.sp,
+            lineHeight = 20.sp,
             color = WbText,
             modifier = Modifier.weight(1f)
         )
@@ -681,6 +694,7 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             Text(
                 text = "About WordBopper",
                 fontSize = 22.sp,
+                lineHeight = 26.sp,
                 fontWeight = FontWeight.Black,
                 color = WbText,
                 modifier = Modifier
@@ -693,6 +707,7 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             Text(
                 text = "Chancey wanted this game to exist and vibe coded the initial version, then passed it to Marco to refine it into the original web game. Marco then decided to rewrite the whole game for Android, and now here you are bopping away. Thanks for playing!",
                 fontSize = 16.sp,
+                lineHeight = 21.sp,
                 color = WbText
             )
 
@@ -733,6 +748,7 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             Text(
                 text = "Acknowledgements",
                 fontSize = 16.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = WbAccent5,
                 modifier = Modifier.weight(1f)
@@ -740,6 +756,7 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             Text(
                 text = if (isAcknowledgementsExpanded) "▾" else "▸",
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 color = WbMuted
             )
         }
@@ -762,6 +779,7 @@ The Italian word list includes words derived from Letterpress word lists made av
 
 The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta.""",
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 color = WbMuted,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -774,6 +792,7 @@ The Italian word list also includes forms derived from Morph-it!, a free morphol
         Text(
             text = "© 2026 — WordBopper Version $versionName",
             fontSize = 12.sp,
+            lineHeight = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = WbMuted,
             textAlign = TextAlign.Center,
@@ -800,6 +819,7 @@ private fun AboutLinkRow(label: String, onClick: () -> Unit) {
         Text(
             text = label,
             fontSize = 16.sp,
+            lineHeight = 20.sp,
             fontWeight = FontWeight.SemiBold,
             color = WbAccent5
         )
@@ -827,6 +847,7 @@ private fun SheetCloseButton(onDismiss: () -> Unit) {
             Text(
                 text = "Close",
                 fontSize = 14.sp,
+                lineHeight = 18.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = WbAccent5
             )
