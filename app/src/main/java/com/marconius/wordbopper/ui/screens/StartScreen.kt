@@ -431,11 +431,11 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 
         SettingsPickerBlock(title = "Game Mode") {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                GameMode.values().forEachIndexed { index, mode ->
+                GameMode.entries.forEachIndexed { index, mode ->
                     SegmentedButton(
                         selected = vm.gameMode == mode,
                         onClick = { vm.setGameMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, GameMode.values().size)
+                        shape = SegmentedButtonDefaults.itemShape(index, GameMode.entries.size)
                     ) {
                         Text(mode.label)
                     }
@@ -447,7 +447,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         SettingsDropdown(
             title = "Bubble Language",
             selectedLabel = vm.dictionaryLanguage.label,
-            options = DictionaryLanguage.values().map { language -> language.label to { vm.setDictionaryLanguage(language) } }
+            options = DictionaryLanguage.entries.map { language -> language.label to { vm.setDictionaryLanguage(language) } }
         )
         SettingsDescription("Choose the language you want to Bop in. The rest of the app stays in English for now.")
 
@@ -480,11 +480,11 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 
         SettingsPickerBlock(title = "Bubble Letter Style") {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                BubbleLetterStyle.values().forEachIndexed { index, style ->
+                BubbleLetterStyle.entries.forEachIndexed { index, style ->
                     SegmentedButton(
                         selected = vm.bubbleLetterStyle == style,
                         onClick = { vm.setBubbleLetterStyle(style) },
-                        shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.values().size)
+                        shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.entries.size)
                     ) {
                         Text(style.label, fontFamily = style.fontFamily)
                     }
@@ -495,11 +495,11 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 
         SettingsPickerBlock(title = "Bubble Text Color") {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                BubbleTextColorOption.values().forEachIndexed { index, option ->
+                BubbleTextColorOption.entries.forEachIndexed { index, option ->
                     SegmentedButton(
                         selected = vm.bubbleTextColorOption == option,
                         onClick = { vm.setBubbleTextColorOption(option) },
-                        shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.values().size)
+                        shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.entries.size)
                     ) {
                         Text(option.label)
                     }
@@ -510,11 +510,11 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 
         SettingsPickerBlock(title = "Game Announcements") {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                GameAnnouncementVerbosity.values().forEachIndexed { index, verbosity ->
+                GameAnnouncementVerbosity.entries.forEachIndexed { index, verbosity ->
                     SegmentedButton(
                         selected = vm.gameAnnouncementVerbosity == verbosity,
                         onClick = { vm.setGameAnnouncementVerbosity(verbosity) },
-                        shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.values().size)
+                        shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.entries.size)
                     ) {
                         Text(verbosity.label)
                     }

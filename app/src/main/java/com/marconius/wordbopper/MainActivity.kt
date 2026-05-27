@@ -6,9 +6,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.marconius.wordbopper.monarch.MonarchDisplayController
 import com.marconius.wordbopper.model.GameScreen
@@ -36,13 +49,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WordBopperTheme {
-                val view = LocalView.current
+                var announcementSerial by remember { mutableIntStateOf(0) }
+                var currentAnnouncement by remember { mutableStateOf("") }
                 LaunchedEffect(Unit) {
                     viewModel.announcementEvent.collect { message ->
-                        view.announceForAccessibility(message)
+                        announcementSerial += 1
+                        currentAnnouncement = message
                     }
                 }
                 WordBopperApp(viewModel = viewModel)
+                AccessibilityAnnouncementHost(
+                    serial = announcementSerial,
+                    message = currentAnnouncement
+                )
             }
         }
     }
@@ -87,5 +106,20 @@ fun WordBopperApp(viewModel: GameViewModel) {
         GameScreen.START -> StartScreen(viewModel)
         GameScreen.GAME -> GameScreen(viewModel)
         GameScreen.RESULTS -> ResultsScreen(viewModel)
+    }
+}
+
+@Composable
+private fun AccessibilityAnnouncementHost(serial: Int, message: String) {
+    if (message.isBlank()) return
+    key(serial) {
+        Box(
+            modifier = Modifier
+                .size(1.dp)
+                .semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    contentDescription = message
+                }
+        )
     }
 }

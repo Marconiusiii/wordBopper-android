@@ -18,16 +18,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontFamily
@@ -54,17 +53,16 @@ import androidx.compose.ui.semantics.role
 
 @Composable
 fun ResultsScreen(vm: GameViewModel) {
-    val view = LocalView.current
-
-    LaunchedEffect(Unit) {
-        view.announceForAccessibility("Round Complete")
-    }
-
     BackHandler {
         vm.goHome()
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(WbBackground)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(WbBackground)
+            .semantics { paneTitle = "Round Complete" }
+    ) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -206,8 +204,8 @@ private fun ActionButton(
     text: String,
     brush: Brush,
     textColor: Color,
-    border: Boolean = false,
     modifier: Modifier = Modifier,
+    border: Boolean = false,
     onClick: () -> Unit
 ) {
     Box(

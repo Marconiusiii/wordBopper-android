@@ -616,27 +616,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadGameMode(): GameMode {
         val saved = prefs.getString("wordBopGameMode", null)
-        return GameMode.values().find { it.name == saved } ?: GameMode.TIMED
+        return GameMode.entries.find { it.name == saved } ?: GameMode.TIMED
     }
 
     private fun loadBubbleTextColorOption(): BubbleTextColorOption {
         val saved = prefs.getString("wordBopBubbleTextColorOption", null)
-        return BubbleTextColorOption.values().find { it.name == saved } ?: BubbleTextColorOption.DARK
+        return BubbleTextColorOption.entries.find { it.name == saved } ?: BubbleTextColorOption.DARK
     }
 
     private fun loadBubbleLetterStyle(): BubbleLetterStyle {
         val saved = prefs.getString("wordBopBubbleLetterStyle", null)
-        return BubbleLetterStyle.values().find { it.name == saved } ?: BubbleLetterStyle.PLAYFUL
+        return BubbleLetterStyle.entries.find { it.name == saved } ?: BubbleLetterStyle.PLAYFUL
     }
 
     private fun loadDictionaryLanguage(): DictionaryLanguage {
         val saved = prefs.getString("wordBopDictionaryLanguage", null)
-        return DictionaryLanguage.values().find { it.name == saved } ?: DictionaryLanguage.ENGLISH
+        return DictionaryLanguage.entries.find { it.name == saved } ?: DictionaryLanguage.ENGLISH
     }
 
     private fun loadGameAnnouncementVerbosity(): GameAnnouncementVerbosity {
         val saved = prefs.getString("wordBopGameAnnouncementVerbosity", null)
-        return GameAnnouncementVerbosity.values().find { it.name == saved } ?: GameAnnouncementVerbosity.NORMAL
+        return GameAnnouncementVerbosity.entries.find { it.name == saved } ?: GameAnnouncementVerbosity.NORMAL
     }
 
     override fun onCleared() {

@@ -16,14 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
@@ -58,14 +57,9 @@ import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun GameScreen(vm: GameViewModel) {
-    val view = LocalView.current
     val selectedIds by remember { derivedStateOf {
         if (vm.bopAwayIsActive) emptySet<UUID>() else vm.selected.map { it.bubbleId }.toHashSet()
     } }
-
-    LaunchedEffect(Unit) {
-        view.announceForAccessibility(vm.gameplayHeading)
-    }
 
     BackHandler {
         vm.endGame()
@@ -75,6 +69,7 @@ fun GameScreen(vm: GameViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(WbBackground)
+            .semantics { paneTitle = vm.gameplayHeading }
     ) {
         Text(
             text = vm.gameplayHeading,
