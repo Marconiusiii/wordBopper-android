@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,10 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.SelectedLetter
 import com.marconius.wordbopper.ui.theme.WbAccent4
 import com.marconius.wordbopper.ui.theme.WbMuted
@@ -39,6 +39,7 @@ import com.marconius.wordbopper.ui.theme.WbSurface
 fun WordTray(
     selected: List<SelectedLetter>,
     wordTrayLabel: String,
+    letterStyle: BubbleLetterStyle,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -61,7 +62,7 @@ fun WordTray(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp),
+                .heightIn(min = 40.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             contentPadding = PaddingValues(horizontal = 1.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -81,7 +82,7 @@ fun WordTray(
                         enter = scaleIn(animationSpec = spring(dampingRatio = 0.6f)) + fadeIn(),
                         exit = scaleOut() + fadeOut()
                     ) {
-                        LetterChip(letter = sel.letter)
+                        LetterChip(letter = sel.letter, letterStyle = letterStyle)
                     }
                 }
             }
@@ -91,7 +92,7 @@ fun WordTray(
 }
 
 @Composable
-private fun LetterChip(letter: String) {
+private fun LetterChip(letter: String, letterStyle: BubbleLetterStyle) {
     Box(
         modifier = Modifier
             .size(36.dp)
@@ -100,10 +101,10 @@ private fun LetterChip(letter: String) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = letter.uppercase(),
+            text = if (letter == "ß") "ß" else letter.uppercase(),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = letterStyle.fontFamily,
             color = androidx.compose.ui.graphics.Color.Black
         )
     }

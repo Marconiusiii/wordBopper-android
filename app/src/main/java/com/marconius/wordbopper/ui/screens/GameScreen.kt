@@ -112,7 +112,8 @@ fun GameScreen(vm: GameViewModel) {
 
         WordTray(
             selected = vm.selected,
-            wordTrayLabel = vm.wordTrayLabel
+            wordTrayLabel = vm.wordTrayLabel,
+            letterStyle = vm.bubbleLetterStyle
         )
 
         BoxWithConstraints(
@@ -130,6 +131,8 @@ fun GameScreen(vm: GameViewModel) {
                 columns = vm.boardColumns,
                 rows = vm.boardRows,
                 textColorOption = vm.bubbleTextColorOption,
+                letterStyle = vm.bubbleLetterStyle,
+                dictionaryLanguage = vm.dictionaryLanguage,
                 speakLetterPositions = vm.speakLetterPositions,
                 speakLetterPhonetics = vm.speakLetterPhonetics,
                 onTap = { vm.tapBubble(it) }

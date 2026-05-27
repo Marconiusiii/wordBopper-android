@@ -32,19 +32,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.model.Bubble
+import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
+import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.ui.theme.bubbleFills
 import com.marconius.wordbopper.ui.theme.bubbleTextColor
 import com.marconius.wordbopper.ui.theme.selectedBubbleFill
 import com.marconius.wordbopper.ui.theme.selectedBubbleRingColor
 import com.marconius.wordbopper.ui.theme.selectedBubbleTextColor
-
-private val phonetics = listOf(
-    "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf",
-    "Hotel", "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar",
-    "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor",
-    "Whiskey", "X-Ray", "Yankee", "Zulu"
-)
 
 @Composable
 fun BubbleGrid(
@@ -54,6 +49,8 @@ fun BubbleGrid(
     columns: Int,
     rows: Int,
     textColorOption: BubbleTextColorOption,
+    letterStyle: BubbleLetterStyle,
+    dictionaryLanguage: DictionaryLanguage,
     speakLetterPositions: Boolean,
     speakLetterPhonetics: Boolean,
     onTap: (Bubble) -> Unit,
@@ -74,6 +71,8 @@ fun BubbleGrid(
                         isSelected = isSelected,
                         visualSize = cellSize,
                         textColorOption = textColorOption,
+                        letterStyle = letterStyle,
+                        dictionaryLanguage = dictionaryLanguage,
                         speakLetterPositions = speakLetterPositions,
                         speakLetterPhonetics = speakLetterPhonetics,
                         modifier = Modifier
@@ -93,6 +92,8 @@ private fun BubbleCell(
     isSelected: Boolean,
     visualSize: Dp,
     textColorOption: BubbleTextColorOption,
+    letterStyle: BubbleLetterStyle,
+    dictionaryLanguage: DictionaryLanguage,
     speakLetterPositions: Boolean,
     speakLetterPhonetics: Boolean,
     modifier: Modifier = Modifier,
@@ -113,6 +114,7 @@ private fun BubbleCell(
 
     val label = buildBubbleLabel(
         letter = bubble.letter,
+        dictionaryLanguage = dictionaryLanguage,
         speakPhonetics = speakLetterPhonetics,
         speakPositions = speakLetterPositions,
         col = bubble.col,
@@ -154,10 +156,10 @@ private fun BubbleCell(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = bubble.letter.uppercase(),
+                text = displayLetter(bubble.letter),
                 fontSize = (visualSize.value * 0.58f).coerceAtMost(40f).sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = letterStyle.fontFamily,
                 color = textColor
             )
         }
@@ -168,6 +170,7 @@ private fun BubbleCell(
 // Numbers only for position — no "column"/"row" words — so TalkBack stays concise.
 private fun buildBubbleLabel(
     letter: String,
+    dictionaryLanguage: DictionaryLanguage,
     speakPhonetics: Boolean,
     speakPositions: Boolean,
     col: Int,
@@ -176,9 +179,12 @@ private fun buildBubbleLabel(
     val lower = letter.lowercase()
     val sb = StringBuilder(lower)
     if (speakPhonetics) {
-        val idx = lower.firstOrNull()?.code?.minus('a'.code) ?: -1
-        if (idx in phonetics.indices) sb.append(", ${phonetics[idx]}")
+        dictionaryLanguage.phoneticName(lower)?.let { sb.append(", $it") }
     }
     if (speakPositions) sb.append(", ${col + 1} ${row + 1}")
     return sb.toString()
+}
+
+private fun displayLetter(letter: String): String {
+    return if (letter == "ß") "ß" else letter.uppercase()
 }

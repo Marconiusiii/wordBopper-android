@@ -14,6 +14,16 @@ More information about COCA is available at https://www.english-corpora.org/coca
 
 The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.
 
+## Spanish, French, And German Word Lists
+
+The Spanish, French, and German word lists are derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
+
+## Italian Word List
+
+The Italian word list includes words derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
+
+The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta.
+
 ## KeySoft SDK
 
 Monarch support uses HumanWare KeySoft SDK APIs. The SDK itself is not included in this repository; builds resolve it from the configured Maven repository when valid local credentials are supplied.

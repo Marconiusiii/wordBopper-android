@@ -20,8 +20,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -60,7 +64,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.model.BestGame
+import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
+import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.ui.theme.WbAccent1
@@ -430,6 +436,15 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
+        SettingsDropdown(
+            title = "Bubble Language",
+            selectedLabel = vm.dictionaryLanguage.label,
+            options = DictionaryLanguage.values().map { language -> language.label to { vm.setDictionaryLanguage(language) } }
+        )
+        SettingsDescription("Choose the language you want to Bop in. The rest of the app stays in English for now.")
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
         SettingsToggleRow(
             title = "Speak Letter Positions",
             checked = vm.speakLetterPositions,
@@ -450,6 +465,22 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             onCheckedChange = { vm.setBopAway(it) }
         )
         SettingsDescription("For an extra challenge, BopAway instantly moves each bopped letter into the Word Tray and replaces it with a new letter in the grid. If you clear the word, those letters will be lost. Bop Wisely!")
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsSectionLabel("Bubble Letter Style")
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            BubbleLetterStyle.values().forEachIndexed { index, style ->
+                SegmentedButton(
+                    selected = vm.bubbleLetterStyle == style,
+                    onClick = { vm.setBubbleLetterStyle(style) },
+                    shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.values().size)
+                ) {
+                    Text(style.label, fontFamily = style.fontFamily)
+                }
+            }
+        }
+        SettingsDescription("Choose the letter shape that is easiest for you to read in the bubbles and word tray.")
 
         HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(vertical = 4.dp))
 
@@ -526,6 +557,52 @@ private fun SettingsSectionLabel(text: String) {
             .heightIn(min = 44.dp)
             .padding(horizontal = 24.dp, vertical = 10.dp)
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsDropdown(
+    title: String,
+    selectedLabel: String,
+    options: List<Pair<String, () -> Unit>>
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    SettingsSectionLabel(title)
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+    ) {
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text(title) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { (label, action) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        expanded = false
+                        action()
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -679,7 +756,11 @@ More information about COCA is available at https://www.english-corpora.org/coca
 
 The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.
 
-The Spanish, French, and German word lists are derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.""",
+The Spanish, French, and German word lists are derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
+
+The Italian word list includes words derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
+
+The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta.""",
                 fontSize = 12.sp,
                 color = WbMuted,
                 modifier = Modifier

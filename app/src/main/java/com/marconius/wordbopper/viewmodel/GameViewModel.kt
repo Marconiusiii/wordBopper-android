@@ -15,7 +15,9 @@ import com.marconius.wordbopper.data.DictionaryService
 import com.marconius.wordbopper.data.GameplayAnnouncements
 import com.marconius.wordbopper.model.BestGame
 import com.marconius.wordbopper.model.Bubble
+import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
+import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GameScreen
@@ -36,11 +38,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         const val TIMED_GAME_DURATION = 120
         const val BOPPLE_GAME_DURATION = 180
         const val COLOR_COUNT = 8
-
-        private val LETTER_POOL: List<String> = (
-            "aaaaaaaaaabbccddddeeeeeeeeeefffggghhhhiiiiiiijkllll" +
-            "mmnnnnnnoooooooppqrrrrrsssssstttttttuuuuvvwwxyyz"
-        ).map { it.toString() }
 
         private val GAMEPLAY_HEADINGS = listOf(
             "Start bopping!", "Bop to it!", "Bop out some words!", "Bop those letters!",
@@ -74,6 +71,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var speakLetterPhonetics by mutableStateOf(false)
         private set
     var bubbleTextColorOption by mutableStateOf(BubbleTextColorOption.DARK)
+        private set
+    var bubbleLetterStyle by mutableStateOf(BubbleLetterStyle.PLAYFUL)
+        private set
+    var dictionaryLanguage by mutableStateOf(DictionaryLanguage.ENGLISH)
         private set
     var gameAnnouncementVerbosity by mutableStateOf(GameAnnouncementVerbosity.NORMAL)
         private set
@@ -154,6 +155,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         speakLetterPositions = prefs.getBoolean("wordBopSpeakLetterPositions", false)
         speakLetterPhonetics = prefs.getBoolean("wordBopSpeakLetterPhonetics", false)
         bubbleTextColorOption = loadBubbleTextColorOption()
+        bubbleLetterStyle = loadBubbleLetterStyle()
+        dictionaryLanguage = loadDictionaryLanguage()
         gameAnnouncementVerbosity = loadGameAnnouncementVerbosity()
         bopAway = prefs.getBoolean("wordBopBopAway", false)
     }
@@ -182,6 +185,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun setBubbleTextColorOption(option: BubbleTextColorOption) {
         bubbleTextColorOption = option
         prefs.edit().putString("wordBopBubbleTextColorOption", option.name).apply()
+    }
+
+    @JvmName("updateBubbleLetterStyle")
+    fun setBubbleLetterStyle(style: BubbleLetterStyle) {
+        bubbleLetterStyle = style
+        prefs.edit().putString("wordBopBubbleLetterStyle", style.name).apply()
+    }
+
+    @JvmName("updateDictionaryLanguage")
+    fun setDictionaryLanguage(language: DictionaryLanguage) {
+        if (gameActive) return
+        dictionaryLanguage = language
+        selected.clear()
+        madeWords.clear()
+        audio.resetSelectSound()
+        prefs.edit().putString("wordBopDictionaryLanguage", language.name).apply()
     }
 
     @JvmName("updateGameAnnouncementVerbosity")
@@ -315,7 +334,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        if (!dictionary.contains(word)) {
+        if (!dictionary.contains(word, dictionaryLanguage)) {
             audio.playInvalidSound()
             resetChainStreak()
             selected.clear()
@@ -324,7 +343,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        if (gameMode == GameMode.BOPPLE && madeWords.contains(word)) {
+        if (gameMode == GameMode.BOPPLE && madeWords.contains(dictionary.normalized(word, dictionaryLanguage))) {
             audio.playInvalidSound()
             resetChainStreak()
             selected.clear()
@@ -349,7 +368,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         score += points
         wordCount += 1
         totalLettersUsed += word.length
-        madeWords.add(word)
+        madeWords.add(dictionary.normalized(word, dictionaryLanguage))
         if (gameMode != GameMode.BOPPLE && chainBonus > largestLetterChain) largestLetterChain = chainBonus
 
         if (multiplier > 1) {
@@ -467,7 +486,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun randomLetter(row: Int, col: Int, replacingId: UUID? = null): String {
         repeat(12) {
-            val candidate = LETTER_POOL.random()
+            val candidate = dictionaryLanguage.letterPool.random()
             if (!hasAdjacentLetter(candidate, row, col, replacingId)) return candidate
         }
 
@@ -480,7 +499,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
             .map { it.letter }
             .toSet()
-        return LETTER_POOL.filterNot { it in adjacentLetters }.ifEmpty { LETTER_POOL }.random()
+        return dictionaryLanguage.letterPool
+            .filterNot { it in adjacentLetters }
+            .ifEmpty { dictionaryLanguage.letterPool }
+            .random()
     }
 
     private fun hasAdjacentLetter(letter: String, row: Int, col: Int, replacingId: UUID?): Boolean {
@@ -600,6 +622,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadBubbleTextColorOption(): BubbleTextColorOption {
         val saved = prefs.getString("wordBopBubbleTextColorOption", null)
         return BubbleTextColorOption.values().find { it.name == saved } ?: BubbleTextColorOption.DARK
+    }
+
+    private fun loadBubbleLetterStyle(): BubbleLetterStyle {
+        val saved = prefs.getString("wordBopBubbleLetterStyle", null)
+        return BubbleLetterStyle.values().find { it.name == saved } ?: BubbleLetterStyle.PLAYFUL
+    }
+
+    private fun loadDictionaryLanguage(): DictionaryLanguage {
+        val saved = prefs.getString("wordBopDictionaryLanguage", null)
+        return DictionaryLanguage.values().find { it.name == saved } ?: DictionaryLanguage.ENGLISH
     }
 
     private fun loadGameAnnouncementVerbosity(): GameAnnouncementVerbosity {
