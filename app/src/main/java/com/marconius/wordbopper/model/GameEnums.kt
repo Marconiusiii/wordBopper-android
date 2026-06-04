@@ -1,7 +1,6 @@
 package com.marconius.wordbopper.model
 
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.intl.LocaleList
 import com.marconius.wordbopper.R
 
 enum class GameScreen { START, GAME, RESULTS }
@@ -151,7 +150,6 @@ enum class DictionaryLanguage(
         )
     );
 
-    val localeList: LocaleList get() = LocaleList(speechLanguage)
     val letterPool: List<String> get() = letterPoolText.map { it.toString() }
 
     fun phoneticName(letter: String): String? = phonetics[letter.lowercase()]

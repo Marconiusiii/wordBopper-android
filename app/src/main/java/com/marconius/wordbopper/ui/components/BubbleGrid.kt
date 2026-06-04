@@ -25,9 +25,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -37,7 +37,6 @@ import com.marconius.wordbopper.model.Bubble
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
-import com.marconius.wordbopper.ui.accessibility.languageTaggedText
 import com.marconius.wordbopper.ui.theme.bubbleFills
 import com.marconius.wordbopper.ui.theme.bubbleTextColor
 import com.marconius.wordbopper.ui.theme.selectedBubbleFill
@@ -137,7 +136,7 @@ private fun BubbleCell(
     Box(
         modifier = modifier
             .clearAndSetSemantics {
-                text = languageTaggedText(label, dictionaryLanguage)
+                contentDescription = label
                 if (isSelected) selected = true
                 onClick(label = if (isSelected) "deselect" else null) {
                     onTap()

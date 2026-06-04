@@ -60,10 +60,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _announcementEvent = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val announcementEvent: SharedFlow<String> = _announcementEvent.asSharedFlow()
-    var announcementLanguage by mutableStateOf<DictionaryLanguage?>(null)
-        private set
-    var announcementLanguagePart by mutableStateOf<String?>(null)
-        private set
 
     // Navigation
     var screen by mutableStateOf(GameScreen.START)
@@ -388,11 +384,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             resetChainStreak()
             selected.clear()
             audio.resetSelectSound()
-            announce(
-                GameplayAnnouncements.invalidWord(word),
-                includeInLowVerbosity = true,
-                languagePart = word
-            )
+            announce(GameplayAnnouncements.invalidWord(word), includeInLowVerbosity = true)
             return
         }
 
@@ -401,11 +393,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             resetChainStreak()
             selected.clear()
             audio.resetSelectSound()
-            announce(
-                GameplayAnnouncements.duplicateWord(word),
-                includeInLowVerbosity = true,
-                languagePart = word
-            )
+            announce(GameplayAnnouncements.duplicateWord(word), includeInLowVerbosity = true)
             return
         }
 
@@ -439,8 +427,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         announce(
             GameplayAnnouncements.scoredWord(word, points, chainBonus, multiplier, powerUpActivated, gameAnnouncementVerbosity),
-            includeInLowVerbosity = true,
-            languagePart = if (powerUpActivated) null else word
+            includeInLowVerbosity = true
         )
     }
 
@@ -604,15 +591,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     // MARK: - Announcements
 
-    fun announce(
-        message: String,
-        includeInLowVerbosity: Boolean = false,
-        languagePart: String? = null
-    ) {
+    fun announce(message: String, includeInLowVerbosity: Boolean = false) {
         if (gameAnnouncementVerbosity == GameAnnouncementVerbosity.OFF) return
         if (gameAnnouncementVerbosity == GameAnnouncementVerbosity.LOW && !includeInLowVerbosity) return
-        announcementLanguage = if (languagePart.isNullOrBlank()) null else dictionaryLanguage
-        announcementLanguagePart = languagePart
         viewModelScope.launch {
             _announcementEvent.emit(message)
         }
