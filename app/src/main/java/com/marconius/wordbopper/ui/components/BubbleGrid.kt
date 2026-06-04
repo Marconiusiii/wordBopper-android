@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,7 +56,8 @@ fun BubbleGrid(
     speakLetterPositions: Boolean,
     speakLetterPhonetics: Boolean,
     onTap: (Bubble) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rectangularCells: Boolean = false
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         for (row in 0 until rows) {
@@ -75,6 +78,7 @@ fun BubbleGrid(
                         dictionaryLanguage = dictionaryLanguage,
                         speakLetterPositions = speakLetterPositions,
                         speakLetterPhonetics = speakLetterPhonetics,
+                        rectangularCell = rectangularCells,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
@@ -96,6 +100,7 @@ private fun BubbleCell(
     dictionaryLanguage: DictionaryLanguage,
     speakLetterPositions: Boolean,
     speakLetterPhonetics: Boolean,
+    rectangularCell: Boolean,
     modifier: Modifier = Modifier,
     onTap: () -> Unit
 ) {
@@ -120,6 +125,7 @@ private fun BubbleCell(
         col = bubble.col,
         row = bubble.row
     )
+    val bubbleShape = if (rectangularCell) RoundedCornerShape(18.dp) else CircleShape
 
     // clearAndSetSemantics completely removes the inner Text node from the accessibility tree,
     // preventing the uppercase visual letter from leaking into the announcement.
@@ -141,23 +147,28 @@ private fun BubbleCell(
         contentAlignment = Alignment.Center
     ) {
         Box(
-            modifier = Modifier
-                .size(visualSize * 0.92f)
+            modifier = if (rectangularCell) {
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 5.dp, vertical = 4.dp)
+            } else {
+                Modifier.size(visualSize * 0.92f)
+            }
                 .scale(scale)
                 .then(
-                    if (!isSelected) Modifier.shadow(4.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.3f))
+                    if (!isSelected) Modifier.shadow(4.dp, bubbleShape, ambientColor = Color.Black.copy(alpha = 0.3f))
                     else Modifier
                 )
-                .clip(CircleShape)
+                .clip(bubbleShape)
                 .background(fillColor)
                 .then(
-                    if (isSelected) Modifier.border(4.dp, ringColor, CircleShape) else Modifier
+                    if (isSelected) Modifier.border(4.dp, ringColor, bubbleShape) else Modifier
                 ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = displayLetter(bubble.letter),
-                fontSize = (visualSize.value * 0.58f).coerceAtMost(40f).sp,
+                fontSize = (visualSize.value * if (rectangularCell) 0.50f else 0.58f).coerceAtMost(44f).sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = letterStyle.fontFamily,
                 color = textColor

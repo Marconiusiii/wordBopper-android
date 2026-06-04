@@ -3,14 +3,18 @@ package com.marconius.wordbopper.ui.screens
 import java.util.UUID
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +36,8 @@ import com.marconius.wordbopper.ui.components.BubbleGrid
 import com.marconius.wordbopper.ui.components.ChainMeter
 import com.marconius.wordbopper.ui.components.StatsBar
 import com.marconius.wordbopper.ui.components.WordTray
+import com.marconius.wordbopper.ui.theme.WbAccent1
+import com.marconius.wordbopper.ui.theme.WbAccent2
 import com.marconius.wordbopper.ui.theme.WbAccent4
 import com.marconius.wordbopper.ui.theme.WbAccent5
 import com.marconius.wordbopper.ui.theme.WbBackground
@@ -39,6 +45,7 @@ import com.marconius.wordbopper.ui.theme.WbMuted
 import com.marconius.wordbopper.ui.theme.WbPanel
 import com.marconius.wordbopper.ui.theme.WbSurface
 import com.marconius.wordbopper.ui.theme.WbText
+import com.marconius.wordbopper.ui.theme.WbTimerGreen
 import com.marconius.wordbopper.viewmodel.GameViewModel
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -258,41 +265,62 @@ private fun MakeWordButton(vm: GameViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 private fun LandscapeLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        GameHeading(text = vm.gameplayHeading, modifier = Modifier.fillMaxWidth())
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val controlsWidth = (maxWidth * 0.30f).coerceIn(220.dp, maxWidth * 0.36f)
 
-        StatsBar(
-            showsTimer = vm.showsTimer,
-            formattedTime = vm.formattedTime,
-            timerIsWarning = vm.timerIsWarning,
-            score = vm.score,
-            wordCount = vm.wordCount,
-            headerAccessibilityLabel = vm.headerAccessibilityLabel,
-            onEndGame = { vm.endGame() },
-            leftHanded = vm.leftHandedMode
-        )
-
-        if (vm.gameMode != com.marconius.wordbopper.model.GameMode.BOPPLE) {
-            ChainMeter(
-                connectedWordStreak = vm.connectedWordStreak,
-                chainPowerUpActive = vm.chainPowerUpActive,
-                chainPowerUpSecondsLeft = vm.chainPowerUpSecondsLeft,
-                chainMeterProgress = vm.chainMeterProgress,
-                chainMeterValue = vm.chainMeterValue
-            )
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (vm.leftHandedMode) {
+                LandscapeControlPanel(
+                    vm = vm,
+                    modifier = Modifier
+                        .width(controlsWidth)
+                        .fillMaxHeight()
+                )
+                LandscapeGridPanel(
+                    vm = vm,
+                    selectedIds = selectedIds,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            } else {
+                LandscapeGridPanel(
+                    vm = vm,
+                    selectedIds = selectedIds,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+                LandscapeControlPanel(
+                    vm = vm,
+                    modifier = Modifier
+                        .width(controlsWidth)
+                        .fillMaxHeight()
+                )
+            }
         }
+    }
+}
 
-        WordTray(
-            selected = vm.selected,
-            wordTrayLabel = vm.wordTrayLabel,
-            letterStyle = vm.bubbleLetterStyle
+@Composable
+private fun LandscapeGridPanel(
+    vm: GameViewModel,
+    selectedIds: Set<UUID>,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.background(WbBackground)) {
+        LandscapeHeading(text = vm.gameplayHeading, modifier = Modifier.fillMaxWidth())
+
+        LandscapeWordTray(
+            vm = vm,
+            modifier = Modifier.fillMaxWidth()
         )
 
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(horizontal = 4.dp, vertical = 6.dp)
+                .padding(horizontal = 3.dp, vertical = 3.dp)
         ) {
             val cellSize = minOf(maxWidth / vm.boardColumns, maxHeight / vm.boardRows).coerceAtLeast(44.dp)
 
@@ -307,24 +335,155 @@ private fun LandscapeLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
                 dictionaryLanguage = vm.dictionaryLanguage,
                 speakLetterPositions = vm.speakLetterPositions,
                 speakLetterPhonetics = vm.speakLetterPhonetics,
-                onTap = { vm.tapBubble(it) }
+                onTap = { vm.tapBubble(it) },
+                modifier = Modifier.fillMaxSize(),
+                rectangularCells = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun LandscapeHeading(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        fontSize = 14.sp,
+        lineHeight = 17.sp,
+        fontWeight = FontWeight.Black,
+        color = WbText,
+        modifier = modifier
+            .background(WbSurface)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .semantics {
+                heading()
+                traversalIndex = -1f
+            }
+    )
+}
+
+@Composable
+private fun LandscapeWordTray(vm: GameViewModel, modifier: Modifier = Modifier) {
+    val displayWord = vm.currentWord.ifEmpty { "Word tray" }
+    Text(
+        text = displayWord,
+        fontSize = 15.sp,
+        lineHeight = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = if (vm.currentWord.isEmpty()) WbMuted else WbAccent4,
+        modifier = modifier
+            .background(WbSurface)
+            .heightIn(min = 34.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clearAndSetSemantics {
+                contentDescription = vm.wordTrayLabel
+            }
+    )
+    HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)
+}
+
+@Composable
+private fun LandscapeControlPanel(vm: GameViewModel, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(WbSurface)
+            .navigationBarsPadding()
+    ) {
+        LandscapeEndGameButton(onEndGame = { vm.endGame() })
+
+        LandscapeStatsPanel(vm = vm)
+
+        if (vm.gameMode != com.marconius.wordbopper.model.GameMode.BOPPLE) {
+            ChainMeter(
+                connectedWordStreak = vm.connectedWordStreak,
+                chainPowerUpActive = vm.chainPowerUpActive,
+                chainPowerUpSecondsLeft = vm.chainPowerUpSecondsLeft,
+                chainMeterProgress = vm.chainMeterProgress,
+                chainMeterValue = vm.chainMeterValue
             )
         }
 
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(WbSurface)
-                .navigationBarsPadding()
-                .heightIn(min = 72.dp)
+                .weight(1f)
         ) {
-            if (vm.leftHandedMode) {
-                MakeWordButton(vm = vm, modifier = Modifier.weight(0.66f))
-                ClearButton(vm = vm, modifier = Modifier.weight(0.34f))
-            } else {
-                ClearButton(vm = vm, modifier = Modifier.weight(0.34f))
-                MakeWordButton(vm = vm, modifier = Modifier.weight(0.66f))
-            }
+            ClearButton(vm = vm, modifier = Modifier.fillMaxWidth().weight(1f))
+            MakeWordButton(vm = vm, modifier = Modifier.fillMaxWidth().weight(1f))
         }
+    }
+}
+
+@Composable
+private fun LandscapeEndGameButton(onEndGame: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clickable(onClickLabel = "End game", onClick = onEndGame)
+            .semantics { role = Role.Button }
+            .background(WbAccent2.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "End Game",
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbAccent2,
+            textAlign = TextAlign.Center
+        )
+    }
+    HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)
+}
+
+@Composable
+private fun LandscapeStatsPanel(vm: GameViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clearAndSetSemantics {
+                contentDescription = vm.headerAccessibilityLabel
+            },
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (vm.showsTimer) {
+            LandscapeStatLine(
+                label = "Time",
+                value = vm.formattedTime,
+                color = if (vm.timerIsWarning) WbAccent2 else WbTimerGreen
+            )
+        }
+        LandscapeStatLine(label = "Score", value = "${vm.score}", color = WbAccent1)
+        LandscapeStatLine(label = "Words", value = "${vm.wordCount}", color = WbAccent4)
+    }
+    HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)
+}
+
+@Composable
+private fun LandscapeStatLine(label: String, value: String, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbMuted,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            fontSize = 18.sp,
+            lineHeight = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            textAlign = TextAlign.End,
+            modifier = Modifier.widthIn(min = 58.dp)
+        )
     }
 }
