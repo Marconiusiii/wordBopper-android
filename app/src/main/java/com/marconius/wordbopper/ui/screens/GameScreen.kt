@@ -36,6 +36,7 @@ import com.marconius.wordbopper.ui.components.BubbleGrid
 import com.marconius.wordbopper.ui.components.ChainMeter
 import com.marconius.wordbopper.ui.components.StatsBar
 import com.marconius.wordbopper.ui.components.WordTray
+import com.marconius.wordbopper.ui.accessibility.languageTaggedPartText
 import com.marconius.wordbopper.ui.theme.WbAccent1
 import com.marconius.wordbopper.ui.theme.WbAccent2
 import com.marconius.wordbopper.ui.theme.WbAccent4
@@ -60,6 +61,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.style.TextAlign
 
 @Composable
@@ -137,7 +139,8 @@ private fun PortraitLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
         WordTray(
             selected = vm.selected,
             wordTrayLabel = vm.wordTrayLabel,
-            letterStyle = vm.bubbleLetterStyle
+            letterStyle = vm.bubbleLetterStyle,
+            dictionaryLanguage = vm.dictionaryLanguage
         )
 
         BoxWithConstraints(
@@ -364,6 +367,7 @@ private fun LandscapeHeading(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun LandscapeWordTray(vm: GameViewModel, modifier: Modifier = Modifier) {
     val displayWord = vm.currentWord.ifEmpty { "Word tray" }
+    val selectedLetters = vm.selected.joinToString(", ") { it.letter.lowercase() }
     Text(
         text = displayWord,
         fontSize = 15.sp,
@@ -375,7 +379,11 @@ private fun LandscapeWordTray(vm: GameViewModel, modifier: Modifier = Modifier) 
             .heightIn(min = 34.dp)
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clearAndSetSemantics {
-                contentDescription = vm.wordTrayLabel
+                if (selectedLetters.isNotBlank()) {
+                    text = languageTaggedPartText(vm.wordTrayLabel, selectedLetters, vm.dictionaryLanguage)
+                } else {
+                    contentDescription = vm.wordTrayLabel
+                }
             }
     )
     HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)

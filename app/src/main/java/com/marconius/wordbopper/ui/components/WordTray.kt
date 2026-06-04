@@ -26,12 +26,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.model.BubbleLetterStyle
+import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.SelectedLetter
+import com.marconius.wordbopper.ui.accessibility.languageTaggedPartText
 import com.marconius.wordbopper.ui.theme.WbAccent4
 import com.marconius.wordbopper.ui.theme.WbMuted
 import com.marconius.wordbopper.ui.theme.WbSurface
@@ -41,15 +44,21 @@ fun WordTray(
     selected: List<SelectedLetter>,
     wordTrayLabel: String,
     letterStyle: BubbleLetterStyle,
+    dictionaryLanguage: DictionaryLanguage,
     modifier: Modifier = Modifier
 ) {
+    val selectedLetters = selected.joinToString(", ") { it.letter.lowercase() }
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(WbSurface)
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clearAndSetSemantics {
-                contentDescription = wordTrayLabel
+                if (selectedLetters.isNotBlank()) {
+                    text = languageTaggedPartText(wordTrayLabel, selectedLetters, dictionaryLanguage)
+                } else {
+                    contentDescription = wordTrayLabel
+                }
             }
     ) {
         Text(

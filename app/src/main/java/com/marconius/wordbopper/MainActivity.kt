@@ -24,10 +24,13 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.marconius.wordbopper.monarch.MonarchDisplayController
+import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameScreen
+import com.marconius.wordbopper.ui.accessibility.languageTaggedPartText
 import com.marconius.wordbopper.ui.screens.GameScreen
 import com.marconius.wordbopper.ui.screens.ResultsScreen
 import com.marconius.wordbopper.ui.screens.StartScreen
@@ -72,7 +75,9 @@ class MainActivity : ComponentActivity() {
                 WordBopperApp(viewModel = viewModel)
                 AccessibilityAnnouncementHost(
                     serial = announcementSerial,
-                    message = currentAnnouncement
+                    message = currentAnnouncement,
+                    language = viewModel.announcementLanguage,
+                    languagePart = viewModel.announcementLanguagePart
                 )
                 ageSignalsMessage?.let { message ->
                     AgeSignalsDialog(
@@ -128,7 +133,12 @@ fun WordBopperApp(viewModel: GameViewModel) {
 }
 
 @Composable
-private fun AccessibilityAnnouncementHost(serial: Int, message: String) {
+private fun AccessibilityAnnouncementHost(
+    serial: Int,
+    message: String,
+    language: DictionaryLanguage?,
+    languagePart: String?
+) {
     if (message.isBlank()) return
     key(serial) {
         Box(
@@ -136,7 +146,11 @@ private fun AccessibilityAnnouncementHost(serial: Int, message: String) {
                 .size(1.dp)
                 .semantics {
                     liveRegion = LiveRegionMode.Assertive
-                    contentDescription = message
+                    if (language != null && !languagePart.isNullOrBlank()) {
+                        text = languageTaggedPartText(message, languagePart, language)
+                    } else {
+                        contentDescription = message
+                    }
                 }
         )
     }
