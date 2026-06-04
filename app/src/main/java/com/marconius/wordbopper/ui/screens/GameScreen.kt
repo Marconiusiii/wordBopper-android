@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -270,21 +271,51 @@ private fun LandscapeLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
 
         Row(modifier = Modifier.fillMaxSize()) {
             if (vm.leftHandedMode) {
-                LandscapeControlsPanel(vm = vm, modifier = Modifier.width(controlsWidth).fillMaxHeight())
+                LandscapeControlsPanel(
+                    vm = vm,
+                    modifier = Modifier
+                        .width(controlsWidth)
+                        .fillMaxHeight()
+                        .semantics {
+                            isTraversalGroup = true
+                            traversalIndex = 3f
+                        }
+                )
                 LandscapeGridPanel(
                     vm = vm,
                     selectedIds = selectedIds,
                     endGameOnLeft = false,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .semantics {
+                            isTraversalGroup = true
+                            traversalIndex = 0f
+                        }
                 )
             } else {
                 LandscapeGridPanel(
                     vm = vm,
                     selectedIds = selectedIds,
                     endGameOnLeft = true,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .semantics {
+                            isTraversalGroup = true
+                            traversalIndex = 0f
+                        }
                 )
-                LandscapeControlsPanel(vm = vm, modifier = Modifier.width(controlsWidth).fillMaxHeight())
+                LandscapeControlsPanel(
+                    vm = vm,
+                    modifier = Modifier
+                        .width(controlsWidth)
+                        .fillMaxHeight()
+                        .semantics {
+                            isTraversalGroup = true
+                            traversalIndex = 3f
+                        }
+                )
             }
         }
     }
@@ -337,6 +368,10 @@ private fun LandscapeGridPanel(
                 .fillMaxWidth()
                 .weight(1f)
                 .padding(horizontal = 4.dp, vertical = 6.dp)
+                .semantics {
+                    isTraversalGroup = true
+                    traversalIndex = 2f
+                }
         ) {
             val cellSize = minOf(maxWidth / vm.boardColumns, maxHeight / vm.boardRows).coerceAtLeast(44.dp)
 
@@ -351,7 +386,12 @@ private fun LandscapeGridPanel(
                 dictionaryLanguage = vm.dictionaryLanguage,
                 speakLetterPositions = vm.speakLetterPositions,
                 speakLetterPhonetics = vm.speakLetterPhonetics,
-                onTap = { vm.tapBubble(it) }
+                onTap = { vm.tapBubble(it) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .semantics {
+                        isTraversalGroup = true
+                    }
             )
         }
     }
