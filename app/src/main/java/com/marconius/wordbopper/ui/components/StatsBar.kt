@@ -40,7 +40,8 @@ fun StatsBar(
     wordCount: Int,
     headerAccessibilityLabel: String,
     onEndGame: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    leftHanded: Boolean = false
 ) {
     Row(
         modifier = modifier
@@ -49,59 +50,73 @@ fun StatsBar(
             .heightIn(min = 56.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-                .clearAndSetSemantics {
-                    contentDescription = headerAccessibilityLabel
-                },
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (showsTimer) {
+        val stats: @Composable () -> Unit = {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .clearAndSetSemantics {
+                        contentDescription = headerAccessibilityLabel
+                    },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showsTimer) {
+                    StatBlock(
+                        label = "Time",
+                        value = formattedTime,
+                        color = if (timerIsWarning) WbAccent2 else WbTimerGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 StatBlock(
-                    label = "Time",
-                    value = formattedTime,
-                    color = if (timerIsWarning) WbAccent2 else WbTimerGreen,
+                    label = "Score",
+                    value = "$score",
+                    color = WbAccent1,
+                    modifier = Modifier.weight(1f)
+                )
+                StatBlock(
+                    label = "Words",
+                    value = "$wordCount",
+                    color = WbAccent4,
                     modifier = Modifier.weight(1f)
                 )
             }
-            StatBlock(
-                label = "Score",
-                value = "$score",
-                color = WbAccent1,
-                modifier = Modifier.weight(1f)
-            )
-            StatBlock(
-                label = "Words",
-                value = "$wordCount",
-                color = WbAccent4,
-                modifier = Modifier.weight(1f)
-            )
         }
 
-        Column(
-            modifier = Modifier
-                .heightIn(min = 56.dp)
-                .clickable(
-                    onClickLabel = "End game",
-                    onClick = onEndGame
+        val endGame: @Composable () -> Unit = {
+            Column(
+                modifier = Modifier
+                    .heightIn(min = 56.dp)
+                    .clickable(
+                        onClickLabel = "End game",
+                        onClick = onEndGame
+                    )
+                    .semantics { role = Role.Button }
+                    .background(WbAccent2.copy(alpha = 0.15f))
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "End Game",
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = WbAccent2,
+                    textAlign = TextAlign.Center
                 )
-                .semantics { role = Role.Button }
-                .background(WbAccent2.copy(alpha = 0.15f))
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "End Game",
-                fontSize = 14.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = WbAccent2,
-                textAlign = TextAlign.Center
-            )
+            }
+        }
+
+        // Row weights live on the stats child, so it always expands and End Game hugs
+        // the chosen edge regardless of order.
+        if (leftHanded) {
+            endGame()
+            stats()
+        } else {
+            stats()
+            endGame()
         }
     }
     HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)

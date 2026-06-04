@@ -70,6 +70,7 @@ import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
+import com.marconius.wordbopper.model.GridSizeOption
 import com.marconius.wordbopper.ui.theme.WbAccent1
 import com.marconius.wordbopper.ui.theme.WbAccent2
 import com.marconius.wordbopper.ui.theme.WbAccent5
@@ -445,6 +446,13 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         SettingsDescription(vm.gameMode.settingsBlurb)
 
         SettingsDropdown(
+            title = "Grid Size",
+            selectedLabel = vm.gridSizeOption.label,
+            options = GridSizeOption.entries.map { option -> option.label to { vm.setGridSizeOption(option) } }
+        )
+        SettingsDescription("Choose a smaller grid for a quicker, easier bop, or a larger grid for a bigger challenge. 5 by 5 is the classic size.")
+
+        SettingsDropdown(
             title = "Bubble Language",
             selectedLabel = vm.dictionaryLanguage.label,
             options = DictionaryLanguage.entries.map { language -> language.label to { vm.setDictionaryLanguage(language) } }
@@ -522,6 +530,15 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             }
         }
         SettingsDescription("Controls spoken game announcements for scoring, invalid words, and cleared letters.")
+
+        SettingsSectionLabel("Left-Handed Mode")
+
+        SettingsToggleRow(
+            title = "Left-Handed Mode",
+            checked = vm.leftHandedMode,
+            onCheckedChange = { vm.setLeftHandedMode(it) }
+        )
+        SettingsDescription("Mirrors gameplay controls for easier left-handed play.")
 
         Row(
             modifier = Modifier

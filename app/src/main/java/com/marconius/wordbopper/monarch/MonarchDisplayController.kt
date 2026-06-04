@@ -57,6 +57,11 @@ class MonarchDisplayController(
             override fun onDoubleTapAtBraillePosition(pointX: Int, pointY: Int) {
                 handleBrailleDoubleTap(pointX, pointY)
             }
+
+            // Required by KeySoftSDK 0.1.131+. Gameplay acts on double-tap only, so
+            // single-tap is intentionally a no-op to preserve existing behavior.
+            override fun onSingleTapAtBraillePosition(pointX: Int, pointY: Int) {
+            }
         }
 
         manager.announceText("WordBopper")

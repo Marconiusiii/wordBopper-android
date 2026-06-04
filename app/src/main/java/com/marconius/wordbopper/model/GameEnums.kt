@@ -25,6 +25,13 @@ enum class BubbleTextColorOption(val label: String) {
     LIGHT("Light Text")
 }
 
+enum class GridSizeOption(val dimension: Int, val label: String) {
+    THREE(3, "3 by 3"),
+    FOUR(4, "4 by 4"),
+    FIVE(5, "5 by 5"),
+    SIX(6, "6 by 6")
+}
+
 enum class BubbleLetterStyle(val label: String, val fontFamily: FontFamily) {
     PLAYFUL("Playful", FontFamily.SansSerif),
     SIMPLE("Simple", FontFamily.Default),

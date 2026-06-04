@@ -21,6 +21,7 @@ import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GameScreen
+import com.marconius.wordbopper.model.GridSizeOption
 import com.marconius.wordbopper.model.SelectedLetter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -80,6 +81,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var bopAway by mutableStateOf(false)
         private set
+    var gridSizeOption by mutableStateOf(GridSizeOption.FIVE)
+        private set
+    var leftHandedMode by mutableStateOf(false)
+        private set
+
+    // When the Monarch tactile display drives the game, the board is locked to the
+    // display's fixed dimensions and the Grid Size preference must not override it.
+    private var monarchBoardLocked = false
 
     // Game state
     val bubbles = mutableStateListOf<Bubble>()
@@ -159,6 +168,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         dictionaryLanguage = loadDictionaryLanguage()
         gameAnnouncementVerbosity = loadGameAnnouncementVerbosity()
         bopAway = prefs.getBoolean("wordBopBopAway", false)
+        gridSizeOption = loadGridSizeOption()
+        leftHandedMode = prefs.getBoolean("wordBopLeftHandedMode", false)
+        boardColumns = gridSizeOption.dimension
+        boardRows = gridSizeOption.dimension
     }
 
     // MARK: - Settings setters
@@ -215,10 +228,28 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putBoolean("wordBopBopAway", value).apply()
     }
 
+    @JvmName("updateGridSizeOption")
+    fun setGridSizeOption(option: GridSizeOption) {
+        gridSizeOption = option
+        prefs.edit().putInt("wordBopGridSize", option.dimension).apply()
+        if (gameActive || monarchBoardLocked) return
+        boardColumns = option.dimension
+        boardRows = option.dimension
+    }
+
+    @JvmName("updateLeftHandedMode")
+    fun setLeftHandedMode(value: Boolean) {
+        leftHandedMode = value
+        prefs.edit().putBoolean("wordBopLeftHandedMode", value).apply()
+    }
+
     // MARK: - Game lifecycle
 
+    // Used by the Monarch tactile display to lock the board to its fixed dimensions,
+    // overriding the Grid Size preference for the duration of the Monarch session.
     fun setBoardSize(columns: Int, rows: Int) {
         if (gameActive) return
+        monarchBoardLocked = true
         boardColumns = columns.coerceIn(3, 8)
         boardRows = rows.coerceIn(3, 8)
     }
@@ -238,6 +269,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         chainPowerUpSecondsLeft = 0
         largestLetterChain = 0
         gameplayHeading = randomGameplayHeading()
+
+        if (!monarchBoardLocked) {
+            boardColumns = gridSizeOption.dimension
+            boardRows = gridSizeOption.dimension
+        }
 
         for (row in 0 until boardRows) {
             for (col in 0 until boardColumns) {
@@ -637,6 +673,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadGameAnnouncementVerbosity(): GameAnnouncementVerbosity {
         val saved = prefs.getString("wordBopGameAnnouncementVerbosity", null)
         return GameAnnouncementVerbosity.entries.find { it.name == saved } ?: GameAnnouncementVerbosity.NORMAL
+    }
+
+    private fun loadGridSizeOption(): GridSizeOption {
+        val saved = prefs.getInt("wordBopGridSize", GridSizeOption.FIVE.dimension)
+        return GridSizeOption.entries.find { it.dimension == saved } ?: GridSizeOption.FIVE
     }
 
     override fun onCleared() {
