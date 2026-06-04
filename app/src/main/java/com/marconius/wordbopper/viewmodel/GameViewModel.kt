@@ -23,6 +23,7 @@ import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GameScreen
 import com.marconius.wordbopper.model.GridSizeOption
 import com.marconius.wordbopper.model.SelectedLetter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -172,6 +173,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         leftHandedMode = prefs.getBoolean("wordBopLeftHandedMode", false)
         boardColumns = gridSizeOption.dimension
         boardRows = gridSizeOption.dimension
+        preloadDictionary(dictionaryLanguage)
     }
 
     // MARK: - Settings setters
@@ -214,6 +216,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         madeWords.clear()
         audio.resetSelectSound()
         prefs.edit().putString("wordBopDictionaryLanguage", language.name).apply()
+        preloadDictionary(language)
+    }
+
+    private fun preloadDictionary(language: DictionaryLanguage) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dictionary.preload(language)
+        }
     }
 
     @JvmName("updateGameAnnouncementVerbosity")

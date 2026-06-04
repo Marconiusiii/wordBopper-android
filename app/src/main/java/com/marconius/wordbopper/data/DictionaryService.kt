@@ -3,19 +3,24 @@ package com.marconius.wordbopper.data
 import android.content.Context
 import com.marconius.wordbopper.model.DictionaryLanguage
 import java.text.Normalizer
+import java.util.concurrent.ConcurrentHashMap
 import java.util.Locale
 
 class DictionaryService private constructor(context: Context) {
     private val resources = context.resources
-    private val wordsByLanguage = mutableMapOf<DictionaryLanguage, Set<String>>()
+    private val wordsByLanguage = ConcurrentHashMap<DictionaryLanguage, Set<String>>()
 
     fun contains(word: String, language: DictionaryLanguage = DictionaryLanguage.ENGLISH): Boolean {
         return words(language).contains(normalized(word, language))
     }
 
+    fun preload(language: DictionaryLanguage) {
+        words(language)
+    }
+
     private fun words(language: DictionaryLanguage): Set<String> {
         wordsByLanguage[language]?.let { return it }
-        val words = resources
+        val loadedWords = resources
             .openRawResource(language.rawResourceId)
             .bufferedReader()
             .useLines { lines ->
@@ -23,8 +28,7 @@ class DictionaryService private constructor(context: Context) {
                     normalized(line, language).takeIf { it.isNotEmpty() }
                 }.toHashSet()
             }
-        wordsByLanguage[language] = words
-        return words
+        return wordsByLanguage.putIfAbsent(language, loadedWords) ?: loadedWords
     }
 
     fun normalized(word: String, language: DictionaryLanguage): String {
