@@ -72,6 +72,7 @@ import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GridSizeOption
 import com.marconius.wordbopper.model.LanguageModeBestGame
+import com.marconius.wordbopper.model.LetterPositionMode
 import com.marconius.wordbopper.ui.theme.WbAccent1
 import com.marconius.wordbopper.ui.theme.WbAccent2
 import com.marconius.wordbopper.ui.theme.WbAccent5
@@ -491,14 +492,12 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         )
         SettingsDescription("Choose the language you want to Bop in. The rest of the app stays in English for now.")
 
-        SettingsSectionLabel("Letter Positions")
-
-        SettingsToggleRow(
-            title = "Speak Letter Positions",
-            checked = vm.speakLetterPositions,
-            onCheckedChange = { vm.setSpeakLetterPositions(it) }
+        SettingsDropdown(
+            title = "Letter Positions",
+            selectedLabel = vm.letterPositionMode.label,
+            options = LetterPositionMode.entries.map { mode -> mode.label to { vm.setLetterPositionMode(mode) } }
         )
-        SettingsDescription("Adds Column and Row locations to the letters, like \"B, 2 5\" for Column 2, Row 5.")
+        SettingsDescription(vm.letterPositionMode.settingsBlurb)
 
         SettingsSectionLabel("Letter Phonetics")
 

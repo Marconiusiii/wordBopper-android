@@ -23,6 +23,7 @@ import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GameScreen
 import com.marconius.wordbopper.model.GridSizeOption
 import com.marconius.wordbopper.model.LanguageModeBestGame
+import com.marconius.wordbopper.model.LetterPositionMode
 import com.marconius.wordbopper.model.SelectedLetter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,7 +72,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // Settings (each has a paired setter that also persists)
     var gameMode by mutableStateOf(GameMode.TIMED)
         private set
-    var speakLetterPositions by mutableStateOf(false)
+    var letterPositionMode by mutableStateOf(LetterPositionMode.OFF)
         private set
     var speakLetterPhonetics by mutableStateOf(false)
         private set
@@ -137,6 +138,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val makeWordEnabled: Boolean get() = selected.size >= 3
     val showsTimer: Boolean get() = gameMode != GameMode.NON_STOP
     val timerIsWarning: Boolean get() = secondsLeft <= 20
+    val speakLetterPositions: Boolean get() = letterPositionMode != LetterPositionMode.OFF
 
     val formattedTime: String
         get() {
@@ -165,7 +167,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     init {
         bestGame = loadBestGame()
         gameMode = loadGameMode()
-        speakLetterPositions = prefs.getBoolean("wordBopSpeakLetterPositions", false)
+        letterPositionMode = loadLetterPositionMode()
         speakLetterPhonetics = prefs.getBoolean("wordBopSpeakLetterPhonetics", false)
         bubbleTextColorOption = loadBubbleTextColorOption()
         bubbleLetterStyle = loadBubbleLetterStyle()
@@ -188,9 +190,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     @JvmName("updateSpeakLetterPositions")
-    fun setSpeakLetterPositions(value: Boolean) {
-        speakLetterPositions = value
-        prefs.edit().putBoolean("wordBopSpeakLetterPositions", value).apply()
+    fun setLetterPositionMode(mode: LetterPositionMode) {
+        letterPositionMode = mode
+        prefs.edit()
+            .putString("wordBopLetterPositionMode", mode.name)
+            .putBoolean("wordBopSpeakLetterPositions", mode != LetterPositionMode.OFF)
+            .apply()
     }
 
     @JvmName("updateSpeakLetterPhonetics")
@@ -758,6 +763,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadGameMode(): GameMode {
         val saved = prefs.getString("wordBopGameMode", null)
         return GameMode.entries.find { it.name == saved } ?: GameMode.TIMED
+    }
+
+    private fun loadLetterPositionMode(): LetterPositionMode {
+        val saved = prefs.getString("wordBopLetterPositionMode", null)
+        return LetterPositionMode.entries.find { it.name == saved }
+            ?: if (prefs.getBoolean("wordBopSpeakLetterPositions", false)) {
+                LetterPositionMode.COLUMN_NUMBER_ROW_NUMBER
+            } else {
+                LetterPositionMode.OFF
+            }
     }
 
     private fun loadBubbleTextColorOption(): BubbleTextColorOption {

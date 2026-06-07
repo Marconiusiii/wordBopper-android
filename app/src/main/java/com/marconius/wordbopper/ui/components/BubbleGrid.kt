@@ -37,6 +37,7 @@ import com.marconius.wordbopper.model.Bubble
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
+import com.marconius.wordbopper.model.LetterPositionMode
 import com.marconius.wordbopper.ui.theme.bubbleFills
 import com.marconius.wordbopper.ui.theme.bubbleTextColor
 import com.marconius.wordbopper.ui.theme.selectedBubbleFill
@@ -53,7 +54,7 @@ fun BubbleGrid(
     textColorOption: BubbleTextColorOption,
     letterStyle: BubbleLetterStyle,
     dictionaryLanguage: DictionaryLanguage,
-    speakLetterPositions: Boolean,
+    letterPositionMode: LetterPositionMode,
     speakLetterPhonetics: Boolean,
     onTap: (Bubble) -> Unit,
     modifier: Modifier = Modifier,
@@ -76,7 +77,7 @@ fun BubbleGrid(
                         textColorOption = textColorOption,
                         letterStyle = letterStyle,
                         dictionaryLanguage = dictionaryLanguage,
-                        speakLetterPositions = speakLetterPositions,
+                        letterPositionMode = letterPositionMode,
                         speakLetterPhonetics = speakLetterPhonetics,
                         rectangularCell = rectangularCells,
                         modifier = Modifier
@@ -98,7 +99,7 @@ private fun BubbleCell(
     textColorOption: BubbleTextColorOption,
     letterStyle: BubbleLetterStyle,
     dictionaryLanguage: DictionaryLanguage,
-    speakLetterPositions: Boolean,
+    letterPositionMode: LetterPositionMode,
     speakLetterPhonetics: Boolean,
     rectangularCell: Boolean,
     modifier: Modifier = Modifier,
@@ -121,7 +122,7 @@ private fun BubbleCell(
         letter = bubble.letter,
         dictionaryLanguage = dictionaryLanguage,
         speakPhonetics = speakLetterPhonetics,
-        speakPositions = speakLetterPositions,
+        letterPositionMode = letterPositionMode,
         col = bubble.col,
         row = bubble.row
     )
@@ -177,13 +178,12 @@ private fun BubbleCell(
     }
 }
 
-// Produces "d", "d, 3 4", "d, Delta", or "d, Delta, 3 4" depending on settings.
-// Numbers only for position — no "column"/"row" words — so TalkBack stays concise.
+// Produces concise labels like "d", "d, 3 4", "d, B3", or "d, 3A" depending on settings.
 private fun buildBubbleLabel(
     letter: String,
     dictionaryLanguage: DictionaryLanguage,
     speakPhonetics: Boolean,
-    speakPositions: Boolean,
+    letterPositionMode: LetterPositionMode,
     col: Int,
     row: Int
 ): String {
@@ -192,8 +192,21 @@ private fun buildBubbleLabel(
     if (speakPhonetics) {
         dictionaryLanguage.phoneticName(lower)?.let { sb.append(", $it") }
     }
-    if (speakPositions) sb.append(", ${col + 1} ${row + 1}")
+    positionValue(letterPositionMode, col, row)?.let { sb.append(", $it") }
     return sb.toString()
+}
+
+private fun positionValue(mode: LetterPositionMode, col: Int, row: Int): String? {
+    return when (mode) {
+        LetterPositionMode.OFF -> null
+        LetterPositionMode.COLUMN_NUMBER_ROW_NUMBER -> "${col + 1} ${row + 1}"
+        LetterPositionMode.COLUMN_LETTER_ROW_NUMBER -> "${gridLetter(col)}${row + 1}"
+        LetterPositionMode.COLUMN_NUMBER_ROW_LETTER -> "${col + 1}${gridLetter(row)}"
+    }
+}
+
+private fun gridLetter(index: Int): String {
+    return ('A'.code + index).toChar().toString()
 }
 
 private fun displayLetter(letter: String): String {

@@ -44,6 +44,25 @@ enum class GameAnnouncementVerbosity(val label: String) {
     OFF("Off")
 }
 
+enum class LetterPositionMode(val label: String, val settingsBlurb: String) {
+    OFF(
+        "Off",
+        "Column and Row positions will not be spoken."
+    ),
+    COLUMN_NUMBER_ROW_NUMBER(
+        "Column Number, Row Number",
+        "Speaks the column number followed by the row number after the letter, like \"W, 2 3\" or \"A, 1 5.\""
+    ),
+    COLUMN_LETTER_ROW_NUMBER(
+        "Column Letter, Row Number",
+        "Speaks columns as A through E and rows as 1 through 5, like \"G, B3\" for column B, row 3."
+    ),
+    COLUMN_NUMBER_ROW_LETTER(
+        "Column Number, Row Letter",
+        "Speaks columns as 1 through 5 and rows as A through E, like \"W, 3A\" for column 3, row A."
+    )
+}
+
 enum class DictionaryLanguage(
     val label: String,
     val rawResourceId: Int,

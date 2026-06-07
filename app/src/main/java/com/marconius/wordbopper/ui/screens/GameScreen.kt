@@ -157,7 +157,7 @@ private fun PortraitLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
                 textColorOption = vm.bubbleTextColorOption,
                 letterStyle = vm.bubbleLetterStyle,
                 dictionaryLanguage = vm.dictionaryLanguage,
-                speakLetterPositions = vm.speakLetterPositions,
+                letterPositionMode = vm.letterPositionMode,
                 speakLetterPhonetics = vm.speakLetterPhonetics,
                 onTap = { vm.tapBubble(it) }
             )
@@ -333,7 +333,7 @@ private fun LandscapeGridPanel(
                 textColorOption = vm.bubbleTextColorOption,
                 letterStyle = vm.bubbleLetterStyle,
                 dictionaryLanguage = vm.dictionaryLanguage,
-                speakLetterPositions = vm.speakLetterPositions,
+                letterPositionMode = vm.letterPositionMode,
                 speakLetterPhonetics = vm.speakLetterPhonetics,
                 onTap = { vm.tapBubble(it) },
                 modifier = Modifier.fillMaxSize(),
