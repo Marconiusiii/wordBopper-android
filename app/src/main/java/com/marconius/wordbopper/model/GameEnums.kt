@@ -116,6 +116,22 @@ enum class DictionaryLanguage(
             "x" to "Xanthippe", "y" to "Ypsilon", "z" to "Zacharias"
         )
     ),
+    DUTCH(
+        label = "Dutch",
+        rawResourceId = R.raw.words_nl,
+        speechLanguage = "nl-NL",
+        letterPoolText = "aaaaaaabbbcccddddeeeeeeeeeeeeeeeffggghhiiiiiiiijjkkk" +
+            "llllmmmmnnnnnnnnoooooopppqrrrrrrrsssssssttttttuuuvvwwxyz",
+        phonetics = mapOf(
+            "a" to "Anton", "b" to "Bernard", "c" to "Cornelis", "d" to "Dirk",
+            "e" to "Eduard", "f" to "Ferdinand", "g" to "Gerard", "h" to "Hendrik",
+            "i" to "Izaak", "j" to "Jan", "k" to "Karel", "l" to "Lodewijk",
+            "m" to "Maria", "n" to "Nico", "o" to "Otto", "p" to "Pieter",
+            "q" to "Quirinus", "r" to "Rudolf", "s" to "Simon", "t" to "Theodoor",
+            "u" to "Utrecht", "v" to "Victor", "w" to "Willem", "x" to "Xantippe",
+            "y" to "Ypsilon", "z" to "Zaandam"
+        )
+    ),
     ITALIAN(
         label = "Italian",
         rawResourceId = R.raw.words_it,

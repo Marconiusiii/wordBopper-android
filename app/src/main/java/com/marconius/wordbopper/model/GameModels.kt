@@ -29,5 +29,18 @@ data class BestGame(
     var mostNonStopWords: Int = 0,
     var largestLetterChain: Int = 0,
     var largestBoppleLetterChain: Int = 0,
-    var largestNonStopLetterChain: Int = 0
+    var largestNonStopLetterChain: Int = 0,
+    var languageModeBestGames: List<LanguageModeBestGame> = emptyList()
 )
+
+data class LanguageModeBestGame(
+    var language: DictionaryLanguage,
+    var mode: GameMode,
+    var highestScore: Int = 0,
+    var longestWord: String = "",
+    var mostWords: Int = 0,
+    var largestLetterChain: Int = 0
+) {
+    val id: String get() = "${language.name}-${mode.name}"
+    val heading: String get() = "${language.label} ${mode.label} Mode"
+}

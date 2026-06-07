@@ -34,6 +34,7 @@ class DictionaryService private constructor(context: Context) {
     fun normalized(word: String, language: DictionaryLanguage): String {
         val protectedCharacters = when (language) {
             DictionaryLanguage.ENGLISH,
+            DictionaryLanguage.DUTCH,
             DictionaryLanguage.ITALIAN -> emptyMap()
             DictionaryLanguage.SPANISH -> mapOf("ñ" to "__WB_NTILDE__")
             DictionaryLanguage.FRENCH,

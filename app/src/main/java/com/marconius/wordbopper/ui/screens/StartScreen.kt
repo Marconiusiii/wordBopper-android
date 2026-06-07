@@ -71,6 +71,7 @@ import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GridSizeOption
+import com.marconius.wordbopper.model.LanguageModeBestGame
 import com.marconius.wordbopper.ui.theme.WbAccent1
 import com.marconius.wordbopper.ui.theme.WbAccent2
 import com.marconius.wordbopper.ui.theme.WbAccent5
@@ -266,7 +267,11 @@ private fun BestGameCard(bestGame: BestGame) {
         }
 
         AnimatedVisibility(visible = isExpanded) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 460.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 BestGameSection(
                     title = "Timed Mode",
                     stats = listOf(
@@ -293,9 +298,36 @@ private fun BestGameCard(bestGame: BestGame) {
                         Pair("Largest chain", "${bestGame.largestNonStopLetterChain}")
                     )
                 )
+                bestGame.languageModeBestGames
+                    .filter { it.language != DictionaryLanguage.ENGLISH }
+                    .sortedWith(compareBy<LanguageModeBestGame> { it.language.label }.thenBy { it.mode.ordinal })
+                    .forEach { record ->
+                        LanguageModeBestGameSection(record)
+                    }
             }
         }
     }
+}
+
+@Composable
+private fun LanguageModeBestGameSection(record: LanguageModeBestGame) {
+    BestGameSection(
+        title = record.heading,
+        stats = if (record.mode == GameMode.BOPPLE) {
+            listOf(
+                Pair("Best score", "${record.highestScore}"),
+                Pair("Longest word", record.longestWord.ifEmpty { "None yet" }),
+                Pair("Most words", "${record.mostWords}")
+            )
+        } else {
+            listOf(
+                Pair(if (record.mode == GameMode.TIMED) "Highest score" else "Best score", "${record.highestScore}"),
+                Pair("Longest word", record.longestWord.ifEmpty { "None yet" }),
+                Pair("Most words", "${record.mostWords}"),
+                Pair("Largest chain", "${record.largestLetterChain}")
+            )
+        }
+    )
 }
 
 @Composable
@@ -711,6 +743,7 @@ private fun SettingsToggleRow(title: String, checked: Boolean, onCheckedChange: 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AboutSheetContent(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -718,7 +751,7 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
         try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0" }
         catch (_: Exception) { "1.0" }
     }
-    var isAcknowledgementsExpanded by remember { mutableStateOf(false) }
+    var showAcknowledgements by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -777,13 +810,12 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .clickable { isAcknowledgementsExpanded = !isAcknowledgementsExpanded }
+                .clickable { showAcknowledgements = true }
                 .clearAndSetSemantics {
                     role = Role.Button
                     contentDescription = "Acknowledgements"
-                    stateDescription = if (isAcknowledgementsExpanded) "Expanded" else "Collapsed"
-                    onClick(label = if (isAcknowledgementsExpanded) "collapse" else "expand") {
-                        isAcknowledgementsExpanded = !isAcknowledgementsExpanded
+                    onClick(label = "open") {
+                        showAcknowledgements = true
                         true
                     }
                 }
@@ -799,44 +831,10 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = if (isAcknowledgementsExpanded) "▾" else "▸",
+                text = "▸",
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
                 color = WbMuted
-            )
-        }
-
-        AnimatedVisibility(visible = isAcknowledgementsExpanded) {
-            Text(
-                text = """Word list copyright 2000-2026 by Kevin Atkinson.
-
-Permission to use, copy, modify, distribute, and sell any part of the English Speller Database (ESDB, previously known as SCOWLv2), or word lists created from it, is hereby granted without fee, provided that the above copyright notice appears in all copies and that both the above copyright notice and this notice appear in supporting documentation. Kevin Atkinson makes no representations about the suitability of this database for any purpose. It is provided "as is" without express or implied warranty.
-
-ESDB is derived from many sources, most of which are in the Public Domain. Data from the Corpus of Contemporary American English (COCA) was also used.
-
-More information about COCA is available at https://www.english-corpora.org/coca/.
-
-The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K.
-
-The English word list also includes words from the Wordnik Wordlist, an open-source word list for game developers.
-
-Wordnik Wordlist copyright 2020 Wordnik. The Wordnik Wordlist is made available under the MIT License. Permission is granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense, and sell copies, provided that the copyright notice and permission notice are included in copies or substantial portions of the software.
-
-The Spanish, French, and German word lists are derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
-
-The Italian word list includes words derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication.
-
-The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta.
-
-Morph-it! is dual-licensed under the Creative Commons Attribution ShareAlike 2.0 License and the GNU Lesser General Public License. Morph-it! copyright 2004-2007 Marco Baroni and Eros Zanchetta.
-
-The Brazilian Portuguese word list is derived from the pythonprobr/palavras word list, which is based primarily on the LibreOffice Brazilian Portuguese spelling dictionary and made available under the Mozilla Public License 2.0.""",
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                color = WbMuted,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
             )
         }
 
@@ -852,7 +850,234 @@ The Brazilian Portuguese word list is derived from the pythonprobr/palavras word
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
         )
     }
+
+    if (showAcknowledgements) {
+        ModalBottomSheet(
+            onDismissRequest = { showAcknowledgements = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            AcknowledgementsSheetContent { showAcknowledgements = false }
+        }
+    }
 }
+
+@Composable
+private fun AcknowledgementsSheetContent(onDismiss: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 48.dp)
+    ) {
+        SheetCloseButton(onDismiss = onDismiss)
+
+        Text(
+            text = "Acknowledgements",
+            fontSize = 22.sp,
+            lineHeight = 26.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .semantics { heading() }
+        )
+
+        Text(
+            text = "Massive thanks to the following developers and resources for our language word lists.",
+            fontSize = 16.sp,
+            lineHeight = 21.sp,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(top = 8.dp))
+
+        languageAcknowledgements.forEach { acknowledgement ->
+            LanguageAcknowledgementDisclosure(acknowledgement)
+        }
+    }
+}
+
+@Composable
+private fun LanguageAcknowledgementDisclosure(acknowledgement: LanguageAcknowledgement) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clickable { isExpanded = !isExpanded }
+                .clearAndSetSemantics {
+                    role = Role.Button
+                    contentDescription = acknowledgement.language
+                    stateDescription = if (isExpanded) "Expanded" else "Collapsed"
+                    onClick(label = if (isExpanded) "collapse" else "expand") {
+                        isExpanded = !isExpanded
+                        true
+                    }
+                }
+                .padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = acknowledgement.language,
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WbAccent5,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = if (isExpanded) "▾" else "▸",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = WbMuted
+            )
+        }
+
+        AnimatedVisibility(visible = isExpanded) {
+            Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                acknowledgement.items.forEach { item ->
+                    when (item) {
+                        is AcknowledgementItem.Text -> AcknowledgementTextRow(item.text)
+                        is AcknowledgementItem.Link -> AcknowledgementLinkRow(item.title, item.url)
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+    }
+}
+
+@Composable
+private fun AcknowledgementTextRow(text: String) {
+    Text(
+        text = text,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        color = WbMuted,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun AcknowledgementLinkRow(title: String, url: String) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }
+            .clearAndSetSemantics {
+                role = Role.Button
+                contentDescription = title
+                onClick {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    true
+                }
+            }
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = WbAccent5
+        )
+    }
+}
+
+private data class LanguageAcknowledgement(
+    val language: String,
+    val items: List<AcknowledgementItem>
+)
+
+private sealed interface AcknowledgementItem {
+    data class Text(val text: String) : AcknowledgementItem
+    data class Link(val title: String, val url: String) : AcknowledgementItem
+}
+
+private val languageAcknowledgements = listOf(
+    LanguageAcknowledgement(
+        language = "English",
+        items = listOf(
+            AcknowledgementItem.Text("Word list copyright 2000-2026 by Kevin Atkinson."),
+            AcknowledgementItem.Text("Permission to use, copy, modify, distribute, and sell any part of the English Speller Database (ESDB, previously known as SCOWLv2), or word lists created from it, is hereby granted without fee, provided that the above copyright notice appears in all copies and that both the above copyright notice and this notice appear in supporting documentation. Kevin Atkinson makes no representations about the suitability of this database for any purpose. It is provided \"as is\" without express or implied warranty."),
+            AcknowledgementItem.Text("ESDB is derived from many sources, most of which are in the Public Domain. Data from the Corpus of Contemporary American English (COCA) was also used."),
+            AcknowledgementItem.Text("More information about COCA is available at:"),
+            AcknowledgementItem.Link("Corpus of Contemporary American English", "https://www.english-corpora.org/coca/"),
+            AcknowledgementItem.Text("The primary source of words for ESDB comes from 12dicts and ENABLE2K. Both are in the Public Domain, but Alan Beale deserves special credit as the author of 12dicts and a major contributor to ENABLE2K."),
+            AcknowledgementItem.Text("The English word list also includes words from the Wordnik Wordlist, an open-source word list for game developers."),
+            AcknowledgementItem.Text("Wordnik Wordlist copyright 2020 Wordnik. The Wordnik Wordlist is made available under the MIT License. Permission is granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense, and sell copies, provided that the copyright notice and permission notice are included in copies or substantial portions of the software.")
+        )
+    ),
+    LanguageAcknowledgement(
+        language = "Spanish",
+        items = listOf(
+            AcknowledgementItem.Text("The Spanish word list is derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication."),
+            AcknowledgementItem.Link("Creative Commons CC0 1.0 Universal", "https://creativecommons.org/publicdomain/zero/1.0/")
+        )
+    ),
+    LanguageAcknowledgement(
+        language = "French",
+        items = listOf(
+            AcknowledgementItem.Text("The French word list is derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication."),
+            AcknowledgementItem.Link("Creative Commons CC0 1.0 Universal", "https://creativecommons.org/publicdomain/zero/1.0/")
+        )
+    ),
+    LanguageAcknowledgement(
+        language = "German",
+        items = listOf(
+            AcknowledgementItem.Text("The German word list is derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication."),
+            AcknowledgementItem.Link("Creative Commons CC0 1.0 Universal", "https://creativecommons.org/publicdomain/zero/1.0/")
+        )
+    ),
+    LanguageAcknowledgement(
+        language = "Dutch",
+        items = listOf(
+            AcknowledgementItem.Text("The Dutch word list is derived from the Dutch word list by OpenTaal."),
+            AcknowledgementItem.Link("OpenTaal", "https://opentaal.org"),
+            AcknowledgementItem.Text("OpenTaal makes the Dutch language files freely available under the Revised BSD License and/or the Creative Commons Attribution 3.0 Unported License."),
+            AcknowledgementItem.Link("Revised BSD License", "https://opensource.org/licenses/BSD-3-Clause"),
+            AcknowledgementItem.Link("Creative Commons Attribution 3.0 Unported License", "https://creativecommons.org/licenses/by/3.0/legalcode.txt"),
+            AcknowledgementItem.Text("Dutch word list copyright 2020 OpenTaal; 2006-2011 OpenTaal; 2001-2005 Simon Brouwer and others; 1996 Nederlandstalige TeX Gebruikersgroep.")
+        )
+    ),
+    LanguageAcknowledgement(
+        language = "Italian",
+        items = listOf(
+            AcknowledgementItem.Text("The Italian word list includes words derived from Letterpress word lists made available under the Creative Commons CC0 1.0 Universal public domain dedication."),
+            AcknowledgementItem.Link("Creative Commons CC0 1.0 Universal", "https://creativecommons.org/publicdomain/zero/1.0/"),
+            AcknowledgementItem.Text("The Italian word list also includes forms derived from Morph-it!, a free morphological lexicon for the Italian language by Marco Baroni and Eros Zanchetta."),
+            AcknowledgementItem.Text("Morph-it! is dual-licensed under the Creative Commons Attribution ShareAlike 2.0 License and the GNU Lesser General Public License. Morph-it! copyright 2004-2007 Marco Baroni and Eros Zanchetta."),
+            AcknowledgementItem.Link("Creative Commons Attribution ShareAlike 2.0 License", "https://creativecommons.org/licenses/by-sa/2.0/"),
+            AcknowledgementItem.Link("GNU Lesser General Public License", "https://www.gnu.org/licenses/lgpl-3.0.html")
+        )
+    ),
+    LanguageAcknowledgement(
+        language = "Brazilian Portuguese",
+        items = listOf(
+            AcknowledgementItem.Text("The Brazilian Portuguese word list is derived from the pythonprobr/palavras word list, which is based primarily on the LibreOffice Brazilian Portuguese spelling dictionary and made available under the Mozilla Public License 2.0."),
+            AcknowledgementItem.Link("pythonprobr/palavras", "https://github.com/pythonprobr/palavras"),
+            AcknowledgementItem.Link("Mozilla Public License 2.0", "https://www.mozilla.org/MPL/2.0/")
+        )
+    )
+)
 
 @Composable
 private fun AboutLinkRow(label: String, onClick: () -> Unit) {

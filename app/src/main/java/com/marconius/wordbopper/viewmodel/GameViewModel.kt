@@ -22,6 +22,7 @@ import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
 import com.marconius.wordbopper.model.GameScreen
 import com.marconius.wordbopper.model.GridSizeOption
+import com.marconius.wordbopper.model.LanguageModeBestGame
 import com.marconius.wordbopper.model.SelectedLetter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.min
@@ -613,7 +616,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         mostNonStopWords = prefs.getInt("bg_mostNonStopWords", 0),
         largestLetterChain = prefs.getInt("bg_largestLetterChain", 0),
         largestBoppleLetterChain = prefs.getInt("bg_largestBoppleLetterChain", 0),
-        largestNonStopLetterChain = prefs.getInt("bg_largestNonStopLetterChain", 0)
+        largestNonStopLetterChain = prefs.getInt("bg_largestNonStopLetterChain", 0),
+        languageModeBestGames = loadLanguageModeBestGames()
     )
 
     private fun saveBestGame() {
@@ -630,6 +634,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             putInt("bg_largestLetterChain", bestGame.largestLetterChain)
             putInt("bg_largestBoppleLetterChain", bestGame.largestBoppleLetterChain)
             putInt("bg_largestNonStopLetterChain", bestGame.largestNonStopLetterChain)
+            putString("bg_languageModeBestGames", encodeLanguageModeBestGames(bestGame.languageModeBestGames))
         }.apply()
     }
 
@@ -637,26 +642,117 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val longest = madeWords.maxByOrNull { it.length } ?: ""
         var changed = false
         val bg = bestGame.copy()
-        when (gameMode) {
-            GameMode.TIMED -> {
-                if (score > bg.highestScore) { bg.highestScore = score; changed = true }
-                if (longest.isNotEmpty() && longest.length >= bg.longestWord.length) { bg.longestWord = longest; changed = true }
-                if (wordCount > bg.mostWords) { bg.mostWords = wordCount; changed = true }
-                if (largestLetterChain > bg.largestLetterChain) { bg.largestLetterChain = largestLetterChain; changed = true }
-            }
-            GameMode.BOPPLE -> {
-                if (score > bg.highestBoppleScore) { bg.highestBoppleScore = score; changed = true }
-                if (longest.isNotEmpty() && longest.length >= bg.longestBoppleWord.length) { bg.longestBoppleWord = longest; changed = true }
-                if (wordCount > bg.mostBoppleWords) { bg.mostBoppleWords = wordCount; changed = true }
-            }
-            GameMode.NON_STOP -> {
-                if (score > bg.highestNonStopScore) { bg.highestNonStopScore = score; changed = true }
-                if (longest.isNotEmpty() && longest.length >= bg.longestNonStopWord.length) { bg.longestNonStopWord = longest; changed = true }
-                if (wordCount > bg.mostNonStopWords) { bg.mostNonStopWords = wordCount; changed = true }
-                if (largestLetterChain > bg.largestNonStopLetterChain) { bg.largestNonStopLetterChain = largestLetterChain; changed = true }
+        if (dictionaryLanguage == DictionaryLanguage.ENGLISH) {
+            when (gameMode) {
+                GameMode.TIMED -> {
+                    if (score > bg.highestScore) { bg.highestScore = score; changed = true }
+                    if (longest.isNotEmpty() && longest.length >= bg.longestWord.length) { bg.longestWord = longest; changed = true }
+                    if (wordCount > bg.mostWords) { bg.mostWords = wordCount; changed = true }
+                    if (largestLetterChain > bg.largestLetterChain) { bg.largestLetterChain = largestLetterChain; changed = true }
+                }
+                GameMode.BOPPLE -> {
+                    if (score > bg.highestBoppleScore) { bg.highestBoppleScore = score; changed = true }
+                    if (longest.isNotEmpty() && longest.length >= bg.longestBoppleWord.length) { bg.longestBoppleWord = longest; changed = true }
+                    if (wordCount > bg.mostBoppleWords) { bg.mostBoppleWords = wordCount; changed = true }
+                }
+                GameMode.NON_STOP -> {
+                    if (score > bg.highestNonStopScore) { bg.highestNonStopScore = score; changed = true }
+                    if (longest.isNotEmpty() && longest.length >= bg.longestNonStopWord.length) { bg.longestNonStopWord = longest; changed = true }
+                    if (wordCount > bg.mostNonStopWords) { bg.mostNonStopWords = wordCount; changed = true }
+                    if (largestLetterChain > bg.largestNonStopLetterChain) { bg.largestNonStopLetterChain = largestLetterChain; changed = true }
+                }
             }
         }
+        val languageModeUpdate = updateLanguageModeBestGame(bg, longest)
+        if (languageModeUpdate.changed) {
+            bg.languageModeBestGames = languageModeUpdate.records
+            changed = true
+        }
         if (changed) { bestGame = bg; saveBestGame() }
+    }
+
+    private data class LanguageModeUpdate(
+        val records: List<LanguageModeBestGame>,
+        val changed: Boolean
+    )
+
+    private fun updateLanguageModeBestGame(
+        bestGame: BestGame,
+        longest: String
+    ): LanguageModeUpdate {
+        if (dictionaryLanguage == DictionaryLanguage.ENGLISH) {
+            return LanguageModeUpdate(bestGame.languageModeBestGames, false)
+        }
+
+        val records = bestGame.languageModeBestGames.toMutableList()
+        val index = records.indexOfFirst { it.language == dictionaryLanguage && it.mode == gameMode }
+        val record = if (index >= 0) records[index].copy()
+        else LanguageModeBestGame(language = dictionaryLanguage, mode = gameMode)
+        var changed = index < 0
+
+        if (score > record.highestScore) {
+            record.highestScore = score
+            changed = true
+        }
+        if (longest.isNotEmpty() && longest.length >= record.longestWord.length) {
+            record.longestWord = longest
+            changed = true
+        }
+        if (wordCount > record.mostWords) {
+            record.mostWords = wordCount
+            changed = true
+        }
+        if (gameMode != GameMode.BOPPLE && largestLetterChain > record.largestLetterChain) {
+            record.largestLetterChain = largestLetterChain
+            changed = true
+        }
+
+        if (changed) {
+            if (index >= 0) records[index] = record else records.add(record)
+        }
+        return LanguageModeUpdate(records, changed)
+    }
+
+    private fun loadLanguageModeBestGames(): List<LanguageModeBestGame> {
+        val json = prefs.getString("bg_languageModeBestGames", null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(json)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val languageName = item.optString("language")
+                    val modeName = item.optString("mode")
+                    val language = DictionaryLanguage.entries.find { it.name == languageName } ?: continue
+                    val mode = GameMode.entries.find { it.name == modeName } ?: continue
+                    add(
+                        LanguageModeBestGame(
+                            language = language,
+                            mode = mode,
+                            highestScore = item.optInt("highestScore"),
+                            longestWord = item.optString("longestWord"),
+                            mostWords = item.optInt("mostWords"),
+                            largestLetterChain = item.optInt("largestLetterChain")
+                        )
+                    )
+                }
+            }
+        }.getOrElse { emptyList() }
+    }
+
+    private fun encodeLanguageModeBestGames(records: List<LanguageModeBestGame>): String {
+        val array = JSONArray()
+        records.forEach { record ->
+            array.put(
+                JSONObject()
+                    .put("language", record.language.name)
+                    .put("mode", record.mode.name)
+                    .put("highestScore", record.highestScore)
+                    .put("longestWord", record.longestWord)
+                    .put("mostWords", record.mostWords)
+                    .put("largestLetterChain", record.largestLetterChain)
+            )
+        }
+        return array.toString()
     }
 
     private fun loadGameMode(): GameMode {
