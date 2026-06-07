@@ -629,7 +629,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             containerColor = WbBackground,
             dragHandle = null
         ) {
-            AboutSheetContent { showAbout = false }
+            AboutSheetContent(vm = vm) { showAbout = false }
         }
     }
 }
@@ -776,7 +776,7 @@ private fun SettingsToggleRow(title: String, checked: Boolean, onCheckedChange: 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AboutSheetContent(onDismiss: () -> Unit) {
+private fun AboutSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val versionName = remember {
         try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0" }
@@ -828,6 +828,23 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
             val subject = Uri.encode("WordBopper Android Feedback")
             context.startActivity(
                 Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject"))
+            )
+        }
+
+        AboutLinkRow(label = "Report Missing Word") {
+            val subject = Uri.encode("WordBopper Missing Word")
+            val body = Uri.encode(
+                """
+                Missing word:
+
+                Bubble Language: ${vm.dictionaryLanguage.label}
+                Game Mode: ${vm.gameMode.label}
+
+                Please include the missing word above. If you know the language or regional spelling details, feel free to add those too.
+                """.trimIndent()
+            )
+            context.startActivity(
+                Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject&body=$body"))
             )
         }
 
