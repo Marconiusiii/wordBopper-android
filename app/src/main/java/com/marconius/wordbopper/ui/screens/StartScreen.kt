@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -386,40 +388,47 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         "Play together with friends at the same time to see who can Bopple the best! All on their own devices, of course."
     )
 
-    Column(
+    LazyColumn(
         modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 32.dp)
+            .fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        SheetCloseButton(onDismiss = onDismiss)
-        Text(
-            text = "How to Play",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Black,
-            color = WbText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .semantics { heading() }
-        )
+        item { SheetCloseButton(onDismiss = onDismiss) }
+        item {
+            Text(
+                text = "How to Play",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .semantics { heading() }
+            )
+        }
 
-        instructions.forEach { InstructionRow(it) }
+        instructions.forEach { instruction ->
+            item { InstructionRow(instruction) }
+        }
 
-        Text(
-            text = "Bopple",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Black,
-            color = WbText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-                .semantics { heading() }
-        )
+        item {
+            Text(
+                text = "Bopple",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .semantics { heading() }
+            )
+        }
 
-        boppleInstructions.forEach { InstructionRow(it) }
+        boppleInstructions.forEach { instruction ->
+            item { InstructionRow(instruction) }
+        }
     }
 }
 
@@ -443,150 +452,173 @@ private fun InstructionRow(text: String) {
 private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
     var showAbout by remember { mutableStateOf(false) }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 32.dp)
+            .fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        SheetCloseButton(onDismiss = onDismiss)
-        Text(
-            text = "Game Settings",
-            fontSize = 22.sp,
-            lineHeight = 26.sp,
-            fontWeight = FontWeight.Black,
-            color = WbText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .semantics { heading() }
-        )
-
-        SettingsPickerBlock(title = "Game Mode") {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                GameMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = vm.gameMode == mode,
-                        onClick = { vm.setGameMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, GameMode.entries.size)
-                    ) {
-                        Text(mode.label)
-                    }
-                }
-            }
-        }
-        SettingsDescription(vm.gameMode.settingsBlurb)
-
-        SettingsDropdown(
-            title = "Grid Size",
-            selectedLabel = vm.gridSizeOption.label,
-            options = GridSizeOption.entries.map { option -> option.label to { vm.setGridSizeOption(option) } }
-        )
-        SettingsDescription("Choose a smaller grid for a quicker, easier bop, or a larger grid for a bigger challenge. 5 by 5 is the classic size.")
-
-        SettingsDropdown(
-            title = "Bubble Language",
-            selectedLabel = vm.dictionaryLanguage.label,
-            options = DictionaryLanguage.entries.map { language -> language.label to { vm.setDictionaryLanguage(language) } }
-        )
-        SettingsDescription("Choose the language you want to Bop in. The rest of the app stays in English for now.")
-
-        SettingsDropdown(
-            title = "Letter Positions",
-            selectedLabel = vm.letterPositionMode.label,
-            options = LetterPositionMode.entries.map { mode -> mode.label to { vm.setLetterPositionMode(mode) } }
-        )
-        SettingsDescription(vm.letterPositionMode.settingsBlurb)
-
-        SettingsSectionLabel("Letter Phonetics")
-
-        SettingsToggleRow(
-            title = "Speak Letter Phonetics",
-            checked = vm.speakLetterPhonetics,
-            onCheckedChange = { vm.setSpeakLetterPhonetics(it) }
-        )
-        SettingsDescription("Adds the phonetic version of the bubble letters to the announcement, such as \"a, Alpha.\"")
-
-        SettingsSectionLabel("BopAway")
-
-        SettingsToggleRow(
-            title = "BopAway",
-            checked = vm.bopAway,
-            onCheckedChange = { vm.setBopAway(it) }
-        )
-        SettingsDescription("For an extra challenge, BopAway instantly moves each tapped letter into the word tray and replaces it with a new letter. If you clear the word, those letters are lost. Bop wisely!")
-
-        SettingsPickerBlock(title = "Bubble Letter Style") {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                BubbleLetterStyle.entries.forEachIndexed { index, style ->
-                    SegmentedButton(
-                        selected = vm.bubbleLetterStyle == style,
-                        onClick = { vm.setBubbleLetterStyle(style) },
-                        shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.entries.size)
-                    ) {
-                        Text(style.label, fontFamily = style.fontFamily)
-                    }
-                }
-            }
-        }
-        SettingsDescription("Choose the letter shape that is easiest for you to read in the bubbles and word tray.")
-
-        SettingsPickerBlock(title = "Bubble Text Color") {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                BubbleTextColorOption.entries.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = vm.bubbleTextColorOption == option,
-                        onClick = { vm.setBubbleTextColorOption(option) },
-                        shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.entries.size)
-                    ) {
-                        Text(option.label)
-                    }
-                }
-            }
-        }
-        SettingsDescription("Pick your preference of light or dark text for the bubbles. Either option will still have colorful bubbles to bop!")
-
-        SettingsPickerBlock(title = "Game Announcements") {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                GameAnnouncementVerbosity.entries.forEachIndexed { index, verbosity ->
-                    SegmentedButton(
-                        selected = vm.gameAnnouncementVerbosity == verbosity,
-                        onClick = { vm.setGameAnnouncementVerbosity(verbosity) },
-                        shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.entries.size)
-                    ) {
-                        Text(verbosity.label)
-                    }
-                }
-            }
-        }
-        SettingsDescription("Controls spoken game announcements for scoring, invalid words, and cleared letters.")
-
-        SettingsSectionLabel("Left-Handed Mode")
-
-        SettingsToggleRow(
-            title = "Left-Handed Mode",
-            checked = vm.leftHandedMode,
-            onCheckedChange = { vm.setLeftHandedMode(it) }
-        )
-        SettingsDescription("Mirrors gameplay controls for easier left-handed play.")
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .clickable { showAbout = true }
-                .semantics { role = Role.Button }
-                .padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        item { SheetCloseButton(onDismiss = onDismiss) }
+        item {
             Text(
-                text = "About WordBopper",
-                fontSize = 16.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = WbAccent5
+                text = "Game Settings",
+                fontSize = 22.sp,
+                lineHeight = 26.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .semantics { heading() }
             )
+        }
+
+        item {
+            SettingsPickerBlock(title = "Game Mode") {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    GameMode.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = vm.gameMode == mode,
+                            onClick = { vm.setGameMode(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(index, GameMode.entries.size)
+                        ) {
+                            Text(mode.label)
+                        }
+                    }
+                }
+            }
+        }
+        item { SettingsDescription(vm.gameMode.settingsBlurb) }
+
+        item {
+            SettingsDropdown(
+                title = "Grid Size",
+                selectedLabel = vm.gridSizeOption.label,
+                options = GridSizeOption.entries.map { option -> option.label to { vm.setGridSizeOption(option) } }
+            )
+        }
+        item { SettingsDescription("Choose a smaller grid for a quicker, easier bop, or a larger grid for a bigger challenge. 5 by 5 is the classic size.") }
+
+        item {
+            SettingsDropdown(
+                title = "Bubble Language",
+                selectedLabel = vm.dictionaryLanguage.label,
+                options = DictionaryLanguage.entries.map { language -> language.label to { vm.setDictionaryLanguage(language) } }
+            )
+        }
+        item { SettingsDescription("Choose the language you want to Bop in. The rest of the app stays in English for now.") }
+
+        item {
+            SettingsDropdown(
+                title = "Letter Positions",
+                selectedLabel = vm.letterPositionMode.label,
+                options = LetterPositionMode.entries.map { mode -> mode.label to { vm.setLetterPositionMode(mode) } }
+            )
+        }
+        item { SettingsDescription(vm.letterPositionMode.settingsBlurb) }
+
+        item { SettingsSectionLabel("Letter Phonetics") }
+
+        item {
+            SettingsToggleRow(
+                title = "Speak Letter Phonetics",
+                checked = vm.speakLetterPhonetics,
+                onCheckedChange = { vm.setSpeakLetterPhonetics(it) }
+            )
+        }
+        item { SettingsDescription("Adds the phonetic version of the bubble letters to the announcement, such as \"a, Alpha.\"") }
+
+        item { SettingsSectionLabel("BopAway") }
+
+        item {
+            SettingsToggleRow(
+                title = "BopAway",
+                checked = vm.bopAway,
+                onCheckedChange = { vm.setBopAway(it) }
+            )
+        }
+        item { SettingsDescription("For an extra challenge, BopAway instantly moves each tapped letter into the word tray and replaces it with a new letter. If you clear the word, those letters are lost. Bop wisely!") }
+
+        item {
+            SettingsPickerBlock(title = "Bubble Letter Style") {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    BubbleLetterStyle.entries.forEachIndexed { index, style ->
+                        SegmentedButton(
+                            selected = vm.bubbleLetterStyle == style,
+                            onClick = { vm.setBubbleLetterStyle(style) },
+                            shape = SegmentedButtonDefaults.itemShape(index, BubbleLetterStyle.entries.size)
+                        ) {
+                            Text(style.label, fontFamily = style.fontFamily)
+                        }
+                    }
+                }
+            }
+        }
+        item { SettingsDescription("Choose the letter shape that is easiest for you to read in the bubbles and word tray.") }
+
+        item {
+            SettingsPickerBlock(title = "Bubble Text Color") {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    BubbleTextColorOption.entries.forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = vm.bubbleTextColorOption == option,
+                            onClick = { vm.setBubbleTextColorOption(option) },
+                            shape = SegmentedButtonDefaults.itemShape(index, BubbleTextColorOption.entries.size)
+                        ) {
+                            Text(option.label)
+                        }
+                    }
+                }
+            }
+        }
+        item { SettingsDescription("Pick your preference of light or dark text for the bubbles. Either option will still have colorful bubbles to bop!") }
+
+        item {
+            SettingsPickerBlock(title = "Game Announcements") {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    GameAnnouncementVerbosity.entries.forEachIndexed { index, verbosity ->
+                        SegmentedButton(
+                            selected = vm.gameAnnouncementVerbosity == verbosity,
+                            onClick = { vm.setGameAnnouncementVerbosity(verbosity) },
+                            shape = SegmentedButtonDefaults.itemShape(index, GameAnnouncementVerbosity.entries.size)
+                        ) {
+                            Text(verbosity.label)
+                        }
+                    }
+                }
+            }
+        }
+        item { SettingsDescription("Controls spoken game announcements for scoring, invalid words, and cleared letters.") }
+
+        item { SettingsSectionLabel("Left-Handed Mode") }
+
+        item {
+            SettingsToggleRow(
+                title = "Left-Handed Mode",
+                checked = vm.leftHandedMode,
+                onCheckedChange = { vm.setLeftHandedMode(it) }
+            )
+        }
+        item { SettingsDescription("Mirrors gameplay controls for easier left-handed play.") }
+
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .clickable { showAbout = true }
+                    .semantics { role = Role.Button }
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "About WordBopper",
+                    fontSize = 16.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = WbAccent5
+                )
+            }
         }
     }
 
@@ -864,42 +896,47 @@ private fun AboutSheetContent(onDismiss: () -> Unit) {
 
 @Composable
 private fun AcknowledgementsSheetContent(onDismiss: () -> Unit) {
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 48.dp)
+            .navigationBarsPadding(),
+        contentPadding = PaddingValues(bottom = 48.dp)
     ) {
-        SheetCloseButton(onDismiss = onDismiss)
-
-        Text(
-            text = "Acknowledgements",
-            fontSize = 22.sp,
-            lineHeight = 26.sp,
-            fontWeight = FontWeight.Black,
-            color = WbText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .semantics { heading() }
-        )
-
-        Text(
-            text = "Massive thanks to the following developers and resources for our language word lists.",
-            fontSize = 16.sp,
-            lineHeight = 21.sp,
-            color = WbText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(top = 8.dp))
-
+        item {
+            SheetCloseButton(onDismiss = onDismiss)
+        }
+        item {
+            Text(
+                text = "Acknowledgements",
+                fontSize = 22.sp,
+                lineHeight = 26.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .semantics { heading() }
+            )
+        }
+        item {
+            Text(
+                text = "Massive thanks to the following developers and resources for our language word lists.",
+                fontSize = 16.sp,
+                lineHeight = 21.sp,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            )
+        }
+        item {
+            HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(top = 8.dp))
+        }
         languageAcknowledgements.forEach { acknowledgement ->
-            LanguageAcknowledgementDisclosure(acknowledgement)
+            item {
+                LanguageAcknowledgementDisclosure(acknowledgement)
+            }
         }
     }
 }

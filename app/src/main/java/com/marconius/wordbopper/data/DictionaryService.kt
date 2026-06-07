@@ -18,6 +18,10 @@ class DictionaryService private constructor(context: Context) {
         words(language)
     }
 
+    fun isLoaded(language: DictionaryLanguage): Boolean {
+        return wordsByLanguage.containsKey(language)
+    }
+
     private fun words(language: DictionaryLanguage): Set<String> {
         wordsByLanguage[language]?.let { return it }
         val loadedWords = resources

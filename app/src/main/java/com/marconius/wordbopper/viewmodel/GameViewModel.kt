@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -129,6 +130,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private var timerJob: Job? = null
     private var powerUpTimerJob: Job? = null
+    private var startGameJob: Job? = null
     private val consumedBopAwayBubbleIds = mutableSetOf<UUID>()
 
     // Computed
@@ -272,6 +274,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startGame() {
+        if (gameActive || startGameJob?.isActive == true) return
+        if (dictionary.isLoaded(dictionaryLanguage)) {
+            beginGame()
+            return
+        }
+        startGameJob = viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                dictionary.preload(dictionaryLanguage)
+            }
+            beginGame()
+        }
+    }
+
+    private fun beginGame() {
+        if (gameActive) return
         bubbles.clear()
         selected.clear()
         madeWords.clear()
