@@ -1,7 +1,9 @@
 package com.marconius.wordbopper.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import com.marconius.wordbopper.ui.LocalReduceMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -112,9 +114,11 @@ private fun BubbleCell(
         else bubbleTextColor(textColorOption)
     val ringColor = if (isSelected) selectedBubbleRingColor(textColorOption) else Color.Transparent
 
+    val reduceMotion = LocalReduceMotion.current
+    val targetScale = if (isSelected) 0.88f else 1.0f
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 0.88f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
+        targetValue = targetScale,
+        animationSpec = if (reduceMotion) snap() else spring(dampingRatio = 0.6f, stiffness = 300f),
         label = "bubble_scale"
     )
 

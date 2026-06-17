@@ -12,6 +12,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,8 @@ import com.marconius.wordbopper.monarch.MonarchDisplayController
 import com.marconius.wordbopper.model.GameScreen
 import com.marconius.wordbopper.ui.screens.GameScreen
 import com.marconius.wordbopper.ui.screens.ResultsScreen
+import com.marconius.wordbopper.ui.LocalReduceMotion
+import com.marconius.wordbopper.ui.rememberReduceMotion
 import com.marconius.wordbopper.ui.screens.StartScreen
 import com.marconius.wordbopper.ui.theme.WordBopperTheme
 import com.marconius.wordbopper.viewmodel.GameViewModel
@@ -52,6 +55,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WordBopperTheme {
+              CompositionLocalProvider(LocalReduceMotion provides rememberReduceMotion()) {
                 var announcementSerial by remember { mutableIntStateOf(0) }
                 var currentAnnouncement by remember { mutableStateOf("") }
                 var ageSignalsMessage by remember { mutableStateOf<AgeSignalsMessage?>(null) }
@@ -80,6 +84,7 @@ class MainActivity : ComponentActivity() {
                         onDismiss = { ageSignalsMessage = null }
                     )
                 }
+              }
             }
         }
     }

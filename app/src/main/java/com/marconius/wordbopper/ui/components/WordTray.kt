@@ -1,11 +1,14 @@
 package com.marconius.wordbopper.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import com.marconius.wordbopper.ui.LocalReduceMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -79,10 +82,12 @@ fun WordTray(
                 }
             } else {
                 items(selected, key = { it.bubbleId }) { sel ->
+                    val reduceMotion = LocalReduceMotion.current
                     AnimatedVisibility(
                         visible = true,
-                        enter = scaleIn(animationSpec = spring(dampingRatio = 0.6f)) + fadeIn(),
-                        exit = scaleOut() + fadeOut()
+                        enter = if (reduceMotion) EnterTransition.None
+                            else scaleIn(animationSpec = spring(dampingRatio = 0.6f)) + fadeIn(),
+                        exit = if (reduceMotion) ExitTransition.None else scaleOut() + fadeOut()
                     ) {
                         LetterChip(letter = sel.letter, letterStyle = letterStyle)
                     }

@@ -1,7 +1,9 @@
 package com.marconius.wordbopper.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import com.marconius.wordbopper.ui.LocalReduceMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,9 +48,10 @@ fun ChainMeter(
     chainMeterValue: String,
     modifier: Modifier = Modifier
 ) {
+    val reduceMotion = LocalReduceMotion.current
     val progressFraction by animateFloatAsState(
         targetValue = (chainMeterProgress / 3.0).toFloat().coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 100),
+        animationSpec = if (reduceMotion) snap() else tween(durationMillis = 100),
         label = "chain_progress"
     )
 

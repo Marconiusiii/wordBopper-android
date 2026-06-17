@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.marconius.wordbopper.audio.AudioEngine
 import com.marconius.wordbopper.data.DictionaryService
 import com.marconius.wordbopper.data.GameplayAnnouncements
+import com.marconius.wordbopper.haptics.HapticsEngine
 import com.marconius.wordbopper.model.BestGame
 import com.marconius.wordbopper.model.Bubble
 import com.marconius.wordbopper.model.BubbleLetterStyle
@@ -62,6 +63,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs: SharedPreferences =
         application.getSharedPreferences("word_bopper", Context.MODE_PRIVATE)
     val audio = AudioEngine(viewModelScope, application)
+    private val haptics = HapticsEngine(application)
 
     private val _announcementEvent = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val announcementEvent: SharedFlow<String> = _announcementEvent.asSharedFlow()
@@ -90,6 +92,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var gridSizeOption by mutableStateOf(GridSizeOption.FIVE)
         private set
     var leftHandedMode by mutableStateOf(false)
+        private set
+    var gameHapticsEnabled by mutableStateOf(true)
         private set
 
     // When the Monarch tactile display drives the game, the board is locked to the
@@ -178,6 +182,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         bopAway = prefs.getBoolean("wordBopBopAway", false)
         gridSizeOption = loadGridSizeOption()
         leftHandedMode = prefs.getBoolean("wordBopLeftHandedMode", false)
+        gameHapticsEnabled = prefs.getBoolean("wordBopGameHapticsEnabled", true)
+        haptics.isEnabled = gameHapticsEnabled
         boardColumns = gridSizeOption.dimension
         boardRows = gridSizeOption.dimension
         preloadDictionary(dictionaryLanguage)
@@ -262,6 +268,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putBoolean("wordBopLeftHandedMode", value).apply()
     }
 
+    @JvmName("updateGameHapticsEnabled")
+    fun setGameHapticsEnabled(value: Boolean) {
+        gameHapticsEnabled = value
+        haptics.isEnabled = value
+        prefs.edit().putBoolean("wordBopGameHapticsEnabled", value).apply()
+    }
+
     // MARK: - Game lifecycle
 
     // Used by the Monarch tactile display to lock the board to its fixed dimensions,
@@ -303,6 +316,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         chainPowerUpSecondsLeft = 0
         largestLetterChain = 0
         gameplayHeading = randomGameplayHeading()
+        haptics.roundStarted()
 
         if (!monarchBoardLocked) {
             boardColumns = gridSizeOption.dimension
@@ -326,6 +340,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         stopTimer()
         stopPowerUpTimer()
         audio.playRoundEndSound()
+        haptics.roundEnded()
         viewModelScope.launch {
             delay(850)
             showResults()
@@ -365,12 +380,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (selected.isEmpty()) audio.resetSelectSound()
         selected.add(SelectedLetter(bubbleId = bubble.id, letter = bubble.letter, row = bubble.row, col = bubble.col))
         audio.playSelectSound()
+        haptics.selectLetter()
     }
 
     private fun deselectBubble(bubble: Bubble) {
         selected.removeAll { it.bubbleId == bubble.id }
         audio.stepSelectSoundBack()
         audio.playDeselectSound()
+        haptics.deselectLetter()
         if (selected.isEmpty()) audio.resetSelectSound()
     }
 
@@ -379,6 +396,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         selected.clear()
         audio.resetSelectSound()
         audio.playBonusSound()
+        haptics.clearLetters()
         if (bopAwayIsActive) {
             announce(GameplayAnnouncements.WORD_CLEARED, includeInLowVerbosity = true)
         } else if (gameMode == GameMode.TIMED) {
@@ -397,6 +415,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         if (gameMode == GameMode.BOPPLE && calcChainBonus() == 0) {
             audio.playInvalidSound()
+            haptics.invalidWord()
             resetChainStreak()
             selected.clear()
             audio.resetSelectSound()
@@ -406,6 +425,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         if (!dictionary.contains(word, dictionaryLanguage)) {
             audio.playInvalidSound()
+            haptics.invalidWord()
             resetChainStreak()
             selected.clear()
             audio.resetSelectSound()
@@ -415,6 +435,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         if (gameMode == GameMode.BOPPLE && madeWords.contains(dictionary.normalized(word, dictionaryLanguage))) {
             audio.playInvalidSound()
+            haptics.invalidWord()
             resetChainStreak()
             selected.clear()
             audio.resetSelectSound()
@@ -444,8 +465,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (multiplier > 1) {
             stopPowerUpTimer()
             audio.playChainMultiplierScoreSound(word.length)
+            haptics.powerUpScored()
         } else {
             audio.playWordSound(word.length)
+            haptics.wordScored(word.length)
         }
 
         val powerUpActivated = if (gameMode == GameMode.BOPPLE) false else updateChainStreak(chainBonus)
@@ -507,6 +530,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         connectedWordStreak += 1
         audio.playConnectedWordSound(chainBonus)
         audio.playChainStreakSound(connectedWordStreak)
+        haptics.chainWord()
         if (connectedWordStreak >= 3) { activatePowerUp(); return true }
         return false
     }
@@ -521,6 +545,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         chainPowerUpActive = true
         chainPowerUpSecondsLeft = 15
         audio.startPowerUpChimes(15.0)
+        haptics.powerUpActivated()
         powerUpTimerJob?.cancel()
         powerUpTimerJob = viewModelScope.launch {
             while (chainPowerUpSecondsLeft > 0) {
@@ -820,6 +845,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         audio.release()
+        haptics.cancel()
         stopTimer()
         stopPowerUpTimer()
     }

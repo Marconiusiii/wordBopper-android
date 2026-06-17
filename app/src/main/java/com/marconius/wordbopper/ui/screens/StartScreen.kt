@@ -601,6 +601,17 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         }
         item { SettingsDescription("Mirrors gameplay controls for easier left-handed play.") }
 
+        item { SettingsSectionLabel("Game Haptics") }
+
+        item {
+            SettingsToggleRow(
+                title = "Game Haptics",
+                checked = vm.gameHapticsEnabled,
+                onCheckedChange = { vm.setGameHapticsEnabled(it) }
+            )
+        }
+        item { SettingsDescription("Adds vibration feedback during gameplay.") }
+
         item {
             Row(
                 modifier = Modifier
