@@ -118,6 +118,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var gameActive by mutableStateOf(false)
         private set
+    var gamePaused by mutableStateOf(false)
+        private set
     var connectedWordStreak by mutableIntStateOf(0)
         private set
     var chainPowerUpActive by mutableStateOf(false)
@@ -169,6 +171,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val headerAccessibilityLabel: String
         get() = if (!showsTimer) "Score: $score, Words: $wordCount"
         else "Time: $formattedTime, Score: $score, Words: $wordCount"
+
+    // Pause control labels. Non-Stop mode has no timer to pause, so it presents the
+    // same overlay framed as "Game Options" instead of "Pause".
+    val pauseButtonTitle: String get() = if (gameMode == GameMode.NON_STOP) "Options" else "Pause"
+    val pauseButtonAccessibilityLabel: String
+        get() = if (gameMode == GameMode.NON_STOP) "Game Options" else "Pause Game"
+    val pauseHeading: String get() = if (gameMode == GameMode.NON_STOP) "Game Options" else "Game Paused"
 
     init {
         bestGame = loadBestGame()
@@ -310,6 +319,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         totalLettersUsed = 0
         secondsLeft = gameDuration
         gameActive = true
+        gamePaused = false
         consumedBopAwayBubbleIds.clear()
         connectedWordStreak = 0
         chainPowerUpActive = false
@@ -334,9 +344,26 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (showsTimer) startTimer()
     }
 
+    fun pauseGame(playSound: Boolean = true) {
+        if (!gameActive || gamePaused) return
+        gamePaused = true
+        stopTimer()
+        pausePowerUpCountdown()
+        if (playSound) audio.playPauseSound()
+    }
+
+    fun resumeGame() {
+        if (!gameActive || !gamePaused) return
+        gamePaused = false
+        audio.playResumeSound()
+        if (showsTimer) startTimer()
+        if (chainPowerUpActive) startPowerUpCountdown(audioDelayMs = 550)
+    }
+
     fun endGame() {
         if (!gameActive) return
         gameActive = false
+        gamePaused = false
         stopTimer()
         stopPowerUpTimer()
         audio.playRoundEndSound()
@@ -364,7 +391,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // MARK: - Bubble interaction
 
     fun tapBubble(bubble: Bubble) {
-        if (!gameActive) return
+        if (!gameActive || gamePaused) return
         if (bopAwayIsActive) {
             if (consumedBopAwayBubbleIds.contains(bubble.id)) return
             consumedBopAwayBubbleIds.add(bubble.id)
@@ -392,7 +419,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearSelection() {
-        if (selected.isEmpty()) return
+        if (!gameActive || gamePaused || selected.isEmpty()) return
         selected.clear()
         audio.resetSelectSound()
         audio.playBonusSound()
@@ -410,7 +437,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // MARK: - Make word
 
     fun makeWord() {
-        if (!gameActive || selected.size < 3) return
+        if (!gameActive || gamePaused || selected.size < 3) return
         val word = currentWord.lowercase()
 
         if (gameMode == GameMode.BOPPLE && calcChainBonus() == 0) {
@@ -544,16 +571,32 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         connectedWordStreak = 0
         chainPowerUpActive = true
         chainPowerUpSecondsLeft = 15
-        audio.startPowerUpChimes(15.0)
         haptics.powerUpActivated()
+        startPowerUpCountdown()
+    }
+
+    // Starts (or restarts, after a pause) the chain power-up countdown for whatever
+    // time remains. audioDelayMs lets the resume flourish breathe before the chimes
+    // come back in, matching the iOS resume behavior.
+    private fun startPowerUpCountdown(audioDelayMs: Long = 0) {
+        if (!chainPowerUpActive || chainPowerUpSecondsLeft <= 0) return
         powerUpTimerJob?.cancel()
         powerUpTimerJob = viewModelScope.launch {
+            if (audioDelayMs > 0) delay(audioDelayMs)
+            if (!chainPowerUpActive || gamePaused) return@launch
+            audio.startPowerUpChimes(chainPowerUpSecondsLeft.toDouble())
             while (chainPowerUpSecondsLeft > 0) {
                 delay(1000)
                 chainPowerUpSecondsLeft--
                 if (chainPowerUpSecondsLeft <= 0) { stopPowerUpTimer(); break }
             }
         }
+    }
+
+    private fun pausePowerUpCountdown() {
+        powerUpTimerJob?.cancel()
+        powerUpTimerJob = null
+        audio.stopPowerUpChimes()
     }
 
     private fun stopPowerUpTimer() {

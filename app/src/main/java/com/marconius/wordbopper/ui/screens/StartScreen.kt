@@ -379,7 +379,8 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         "Hit Make Word to score. Hit Clear Letters to deselect all selected letters and get 15 seconds added to the timer in Timed mode.",
         "When BopAway is on, each letter you tap moves into the word tray and gets replaced right away. Hit Clear Word to erase the current word from the tray.",
         "Timed mode has 2 minutes on the clock, and letters change as you use them. Non-Stop mode turns off the timer and lets you Bop til you drop!",
-        "For TalkBack users, use Explore by Touch or linear navigation to quickly navigate the grid."
+        "For TalkBack users, use Explore by Touch or linear navigation to quickly navigate the grid.",
+        "Using a keyboard? Press Tab to move between the bubbles and buttons, then Enter or Space to choose one. Press Backspace to clear your letters, and Escape to pause the game or, in Non-Stop mode, to open Game Options. Press Escape again to jump back in."
     )
     val boppleInstructions = listOf(
         "Words must be made up of letters that are next to each other in the grid.",

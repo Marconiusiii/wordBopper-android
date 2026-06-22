@@ -180101,6 +180101,7 @@ spiraled
 spiraling
 spiralities
 spirality
+spiralizer
 spiralled
 spiralling
 spirally

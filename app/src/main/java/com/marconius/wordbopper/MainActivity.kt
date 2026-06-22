@@ -95,6 +95,12 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        // Auto-pause when the app actually goes to the background or the screen locks.
+        // This lives in onStop (not onPause) on purpose: onPause also fires on transient
+        // window-focus loss — which TalkBack and external keyboards trigger constantly —
+        // and pausing there made a freshly started game pop straight into the Pause cover.
+        // Silent pause; the flourish is reserved for the explicit Pause button.
+        viewModel.pauseGame(playSound = false)
         monarchController?.stop()
         super.onStop()
     }
@@ -112,7 +118,31 @@ class MainActivity : ComponentActivity() {
         ) {
             return true
         }
+        if (event.action == KeyEvent.ACTION_DOWN && handleGameKeyShortcut(event.keyCode)) {
+            return true
+        }
         return super.dispatchKeyEvent(event)
+    }
+
+    // External-keyboard accelerators for the game screen. We deliberately only claim
+    // keys that focus traversal and text entry never use (Escape, Backspace/Delete),
+    // so Tab/Shift+Tab navigation and Enter/Space activation of the focused control
+    // keep working untouched. Returns true only when a shortcut was actually consumed.
+    private fun handleGameKeyShortcut(keyCode: Int): Boolean {
+        if (viewModel.screen != GameScreen.GAME || !viewModel.gameActive) return false
+        return when (keyCode) {
+            KeyEvent.KEYCODE_ESCAPE -> {
+                if (viewModel.gamePaused) viewModel.resumeGame() else viewModel.pauseGame()
+                true
+            }
+            KeyEvent.KEYCODE_DEL,
+            KeyEvent.KEYCODE_FORWARD_DEL -> {
+                if (viewModel.gamePaused) return false
+                viewModel.clearSelection()
+                true
+            }
+            else -> false
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

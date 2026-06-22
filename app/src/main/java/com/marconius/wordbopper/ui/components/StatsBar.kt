@@ -39,7 +39,9 @@ fun StatsBar(
     score: Int,
     wordCount: Int,
     headerAccessibilityLabel: String,
-    onEndGame: () -> Unit,
+    pauseButtonTitle: String,
+    pauseButtonAccessibilityLabel: String,
+    onPause: () -> Unit,
     modifier: Modifier = Modifier,
     leftHanded: Boolean = false
 ) {
@@ -84,22 +86,22 @@ fun StatsBar(
             }
         }
 
-        val endGame: @Composable () -> Unit = {
+        val pause: @Composable () -> Unit = {
             Column(
                 modifier = Modifier
                     .heightIn(min = 56.dp)
-                    .clickable(
-                        onClickLabel = "End game",
-                        onClick = onEndGame
-                    )
-                    .semantics { role = Role.Button }
+                    .clickable(onClick = onPause)
+                    .clearAndSetSemantics {
+                        role = Role.Button
+                        contentDescription = pauseButtonAccessibilityLabel
+                    }
                     .background(WbAccent2.copy(alpha = 0.15f))
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "End Game",
+                    text = pauseButtonTitle,
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -109,14 +111,14 @@ fun StatsBar(
             }
         }
 
-        // Row weights live on the stats child, so it always expands and End Game hugs
-        // the chosen edge regardless of order.
+        // Row weights live on the stats child, so it always expands and the pause
+        // control hugs the chosen edge regardless of order.
         if (leftHanded) {
-            endGame()
+            pause()
             stats()
         } else {
             stats()
-            endGame()
+            pause()
         }
     }
     HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 1.dp)

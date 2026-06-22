@@ -1,5 +1,7 @@
 package com.marconius.wordbopper.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import java.util.UUID
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -16,12 +18,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
@@ -69,7 +76,9 @@ fun GameScreen(vm: GameViewModel) {
     } }
 
     BackHandler {
-        vm.endGame()
+        // While paused, Back dismisses the pause cover (resume) rather than ending the
+        // game; otherwise it ends the game as before.
+        if (vm.gamePaused) vm.resumeGame() else vm.endGame()
     }
 
     val useLandscapeLayout = booleanResource(R.bool.use_landscape_game_layout)
@@ -85,7 +94,131 @@ fun GameScreen(vm: GameViewModel) {
         } else {
             PortraitLayout(vm = vm, selectedIds = selectedIds)
         }
+
+        if (vm.gamePaused) {
+            GamePauseCover(vm = vm)
+        }
     }
+}
+
+@Composable
+private fun GamePauseCover(vm: GameViewModel) {
+    val context = LocalContext.current
+    val heading = vm.pauseHeading
+
+    // Re-announce the paused screen whenever it is shown, including after returning
+    // from the mail composer or backgrounding the app.
+    LaunchedEffect(heading) {
+        vm.announce(heading, includeInLowVerbosity = true)
+    }
+
+    // The cover sits above the board and swallows taps so sighted players can't peek
+    // at the letters while paused. pointerInput consumes touches without adding any
+    // semantics (a disabled clickable would surface a phantom focusable node to
+    // TalkBack ahead of the heading).
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(WbBackground)
+            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .semantics { paneTitle = heading },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = heading,
+            fontSize = 26.sp,
+            lineHeight = 32.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 96.dp)
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .wrapContentHeight(Alignment.CenterVertically)
+                .semantics {
+                    heading()
+                    traversalIndex = -1f
+                }
+        )
+
+        PauseActionButton(
+            title = "Resume Game",
+            textColor = Color.Black,
+            background = Brush.linearGradient(listOf(WbAccent5, WbAccent4)),
+            onClick = { vm.resumeGame() }
+        )
+
+        PauseActionButton(
+            title = "End Game",
+            textColor = WbAccent2,
+            background = Brush.linearGradient(listOf(WbAccent2.copy(alpha = 0.15f), WbAccent2.copy(alpha = 0.15f))),
+            onClick = { vm.endGame() }
+        )
+
+        PauseActionButton(
+            title = "Report Missing Word",
+            textColor = WbText,
+            background = Brush.linearGradient(listOf(WbPanel, WbPanel)),
+            onClick = { reportMissingWord(context, vm) }
+        )
+    }
+}
+
+@Composable
+private fun PauseActionButton(
+    title: String,
+    textColor: Color,
+    background: Brush,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics {
+                role = Role.Button
+                contentDescription = title
+                onClick { onClick(); true }
+            }
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = title,
+            fontSize = 17.sp,
+            lineHeight = 21.sp,
+            fontWeight = FontWeight.Black,
+            color = textColor,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(background)
+                .padding(vertical = 20.dp, horizontal = 16.dp)
+                .wrapContentHeight(Alignment.CenterVertically)
+        )
+    }
+}
+
+private fun reportMissingWord(context: android.content.Context, vm: GameViewModel) {
+    val subject = Uri.encode("WordBopper Missing Word")
+    val body = Uri.encode(
+        """
+        Missing word:
+
+        Bubble Language: ${vm.dictionaryLanguage.label}
+        Game Mode: ${vm.gameMode.label}
+
+        Please include the missing word above. If you know the language or regional spelling details, feel free to add those too.
+        """.trimIndent()
+    )
+    context.startActivity(
+        Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject&body=$body"))
+    )
 }
 
 @Composable
@@ -120,7 +253,9 @@ private fun PortraitLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
             score = vm.score,
             wordCount = vm.wordCount,
             headerAccessibilityLabel = vm.headerAccessibilityLabel,
-            onEndGame = { vm.endGame() },
+            pauseButtonTitle = vm.pauseButtonTitle,
+            pauseButtonAccessibilityLabel = vm.pauseButtonAccessibilityLabel,
+            onPause = { vm.pauseGame() },
             leftHanded = vm.leftHandedMode
         )
 
@@ -388,7 +523,11 @@ private fun LandscapeControlPanel(vm: GameViewModel, modifier: Modifier = Modifi
             .background(WbSurface)
             .navigationBarsPadding()
     ) {
-        LandscapeEndGameButton(onEndGame = { vm.endGame() })
+        LandscapePauseButton(
+            title = vm.pauseButtonTitle,
+            accessibilityLabel = vm.pauseButtonAccessibilityLabel,
+            onPause = { vm.pauseGame() }
+        )
 
         LandscapeStatsPanel(vm = vm)
 
@@ -414,19 +553,22 @@ private fun LandscapeControlPanel(vm: GameViewModel, modifier: Modifier = Modifi
 }
 
 @Composable
-private fun LandscapeEndGameButton(onEndGame: () -> Unit) {
+private fun LandscapePauseButton(title: String, accessibilityLabel: String, onPause: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .clickable(onClickLabel = "End game", onClick = onEndGame)
-            .semantics { role = Role.Button }
+            .clickable(onClick = onPause)
+            .clearAndSetSemantics {
+                role = Role.Button
+                contentDescription = accessibilityLabel
+            }
             .background(WbAccent2.copy(alpha = 0.15f))
             .padding(horizontal = 10.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "End Game",
+            text = title,
             fontSize = 14.sp,
             lineHeight = 18.sp,
             fontWeight = FontWeight.Bold,

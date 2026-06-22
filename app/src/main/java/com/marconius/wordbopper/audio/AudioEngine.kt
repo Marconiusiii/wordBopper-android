@@ -178,6 +178,39 @@ class AudioEngine(
         play(ctx.toFloatArray())
     }
 
+    fun playPauseSound() {
+        val scale = listOf(261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 659.25)
+        val motifs = listOf(
+            listOf(0, 2, 1, 4, 6),
+            listOf(0, 1, 3, 2, 5),
+            listOf(1, 0, 2, 4, 6),
+            listOf(0, 3, 2, 5, 6)
+        )
+        playPauseResumeMotif(motifs.random().map { scale[it] })
+    }
+
+    fun playResumeSound() {
+        val scale = listOf(261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 659.25)
+        val motifs = listOf(
+            listOf(6, 4, 5, 2, 0),
+            listOf(6, 5, 3, 4, 1),
+            listOf(5, 6, 4, 2, 0),
+            listOf(6, 3, 4, 1, 0)
+        )
+        playPauseResumeMotif(motifs.random().map { scale[it] })
+    }
+
+    private fun playPauseResumeMotif(notes: List<Double>) {
+        val spacing = 0.075
+        val ctx = SynthContext(notes.size * spacing + 0.5, sampleRate)
+        for ((index, frequency) in notes.withIndex()) {
+            val start = index * spacing
+            ctx.addOsc(OscType.SINE, frequency, start, 0.01, 0.22, 0.42, 0.4, 0.07)
+            ctx.addOsc(OscType.TRIANGLE, frequency * 2, start, 0.008, 0.055, 0.32, 0.3, 0.06)
+        }
+        play(ctx.toFloatArray())
+    }
+
     fun playRoundEndSound() {
         val chordTones = listOf(261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98)
         var idx = (0..4).random()
