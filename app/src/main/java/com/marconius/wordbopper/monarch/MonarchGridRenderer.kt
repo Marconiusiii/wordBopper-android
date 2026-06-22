@@ -18,6 +18,7 @@ class MonarchGridRenderer(
     fun render(viewModel: GameViewModel, statusText: String = ""): Array<ByteArray> {
         val dots = blank()
         when (viewModel.screen) {
+            GameScreen.LOADING -> renderStart(dots, viewModel)
             GameScreen.START -> renderStart(dots, viewModel)
             GameScreen.GAME -> renderGame(dots, viewModel, statusText)
             GameScreen.RESULTS -> renderResults(dots, viewModel)

@@ -3,7 +3,7 @@ package com.marconius.wordbopper.model
 import androidx.compose.ui.text.font.FontFamily
 import com.marconius.wordbopper.R
 
-enum class GameScreen { START, GAME, RESULTS }
+enum class GameScreen { LOADING, START, GAME, RESULTS }
 
 enum class GameMode(val label: String, val settingsBlurb: String) {
     TIMED(

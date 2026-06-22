@@ -68,8 +68,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val _announcementEvent = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val announcementEvent: SharedFlow<String> = _announcementEvent.asSharedFlow()
 
-    // Navigation
-    var screen by mutableStateOf(GameScreen.START)
+    // Navigation. Start on LOADING so the Home screen (and its Start Game button) does
+    // not exist until warmUp() has finished all the heavy first-run work. This is what
+    // prevents the first Start press from absorbing that cost.
+    var screen by mutableStateOf(GameScreen.LOADING)
         private set
 
     // Settings (each has a paired setter that also persists)
@@ -195,7 +197,40 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         haptics.isEnabled = gameHapticsEnabled
         boardColumns = gridSizeOption.dimension
         boardRows = gridSizeOption.dimension
-        preloadDictionary(dictionaryLanguage)
+    }
+
+    private var warmUpStarted = false
+
+    // Cold-launch warm-up. Runs once, behind the Loading screen. Loads the dictionary,
+    // primes the audio engine, and pre-builds a throwaway round so the gameplay code and
+    // bubble objects are all initialized during loading rather than on the first real
+    // Start press. Enforces a brief minimum so the spoken "Loading WordBopper" cue is
+    // actually heard, then moves to the Home screen (which focuses its heading on appear).
+    fun warmUp() {
+        if (warmUpStarted) return
+        warmUpStarted = true
+        viewModelScope.launch {
+            val minimumShown = launch { delay(600) }
+            withContext(Dispatchers.IO) {
+                dictionary.preload(dictionaryLanguage)
+                audio.warmUp()
+                prebuildThrowawayRound()
+            }
+            minimumShown.join()
+            screen = GameScreen.START
+        }
+    }
+
+    // Builds a full board off-screen and discards it, forcing first-run initialization of
+    // the letter-generation and Bubble paths without showing anything to the user.
+    private fun prebuildThrowawayRound() {
+        val throwaway = ArrayList<Bubble>(boardColumns * boardRows)
+        for (row in 0 until boardRows) {
+            for (col in 0 until boardColumns) {
+                throwaway.add(Bubble(letter = randomLetter(row, col), colorIndex = randomColor(), row = row, col = col))
+            }
+        }
+        throwaway.clear()
     }
 
     // MARK: - Settings setters

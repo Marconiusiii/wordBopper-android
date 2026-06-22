@@ -48,6 +48,13 @@ class AudioEngine(
         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
         .build()
 
+    // Forces the first AudioTrack construction to happen during app launch rather than on
+    // the first real sound (the first build/play has noticeable one-time cost). The buffer
+    // is silent, so nothing is audible.
+    fun warmUp() {
+        play(FloatArray(256))
+    }
+
     fun resetSelectSound() { selectNoteIndex = 0 }
     fun stepSelectSoundBack() { selectNoteIndex = max(0, selectNoteIndex - 1) }
 

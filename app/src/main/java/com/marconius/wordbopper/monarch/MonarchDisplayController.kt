@@ -141,6 +141,8 @@ class MonarchDisplayController(
 
     private fun handlePrimaryAction() {
         when (viewModel.screen) {
+            // Still warming up; ignore input until the game is ready.
+            GameScreen.LOADING -> {}
             GameScreen.START -> {
                 clearStatusText()
                 manager.announceText("Starting game")
