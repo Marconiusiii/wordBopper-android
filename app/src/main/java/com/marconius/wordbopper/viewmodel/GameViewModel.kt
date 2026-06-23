@@ -139,6 +139,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var timerJob: Job? = null
     private var powerUpTimerJob: Job? = null
     private var startGameJob: Job? = null
+    private var phoneWarmUpJob: Job? = null
+    private var phoneWarmUpLanguage: DictionaryLanguage? = null
     private val consumedBopAwayBubbleIds = mutableSetOf<UUID>()
 
     // Computed
@@ -204,20 +206,31 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // Cold-launch warm-up. Runs once, behind the Loading screen. Loads the dictionary,
     // primes the audio engine, and pre-builds a throwaway round so the gameplay code and
     // bubble objects are all initialized during loading rather than on the first real
-    // Start press. Enforces a brief minimum so the spoken "Loading WordBopper" cue is
-    // actually heard, then moves to the Home screen (which focuses its heading on appear).
+    // Start press. Moves to the Home screen the instant that work finishes — no artificial
+    // minimum — so the Loading screen vanishes as quickly as the app is actually ready.
     fun warmUp() {
         if (warmUpStarted) return
         warmUpStarted = true
         viewModelScope.launch {
-            val minimumShown = launch { delay(600) }
             withContext(Dispatchers.IO) {
                 dictionary.preload(dictionaryLanguage)
                 audio.warmUp()
                 prebuildThrowawayRound()
             }
-            minimumShown.join()
             screen = GameScreen.START
+        }
+    }
+
+    fun warmUpForPhone() {
+        if (warmUpStarted) return
+        warmUpStarted = true
+        screen = GameScreen.START
+        audio.warmUp()
+
+        val language = dictionaryLanguage
+        phoneWarmUpLanguage = language
+        phoneWarmUpJob = viewModelScope.launch(Dispatchers.IO) {
+            dictionary.preload(language)
         }
     }
 
@@ -332,13 +345,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startGame() {
         if (gameActive || startGameJob?.isActive == true) return
-        if (dictionary.isLoaded(dictionaryLanguage)) {
+        val language = dictionaryLanguage
+        if (dictionary.isLoaded(language)) {
             beginGame()
             return
         }
         startGameJob = viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                dictionary.preload(dictionaryLanguage)
+            if (phoneWarmUpLanguage == language) {
+                phoneWarmUpJob?.join()
+            }
+            if (!dictionary.isLoaded(language)) {
+                withContext(Dispatchers.IO) {
+                    dictionary.preload(language)
+                }
             }
             beginGame()
         }

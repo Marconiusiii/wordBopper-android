@@ -37,7 +37,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,8 +48,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -60,7 +57,6 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,13 +84,8 @@ import com.marconius.wordbopper.viewmodel.GameViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StartScreen(vm: GameViewModel) {
-    val headingFocusRequester = remember { FocusRequester() }
     var showInstructions by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        headingFocusRequester.requestFocus()
-    }
 
     Column(
         modifier = Modifier
@@ -110,10 +101,8 @@ fun StartScreen(vm: GameViewModel) {
                 .fillMaxWidth()
                 .heightIn(min = 72.dp)
                 .padding(top = 24.dp, bottom = 8.dp)
-                .focusRequester(headingFocusRequester)
                 .semantics(mergeDescendants = true) {
                     heading()
-                    traversalIndex = -1f
                 }
         ) {
             Text(

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,16 +88,15 @@ fun GameScreen(vm: GameViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(WbBackground)
+            .statusBarsPadding()
             .semantics { paneTitle = vm.gameplayHeading }
     ) {
-        if (useLandscapeLayout) {
+        if (vm.gamePaused) {
+            GamePauseCover(vm = vm)
+        } else if (useLandscapeLayout) {
             LandscapeLayout(vm = vm, selectedIds = selectedIds)
         } else {
             PortraitLayout(vm = vm, selectedIds = selectedIds)
-        }
-
-        if (vm.gamePaused) {
-            GamePauseCover(vm = vm)
         }
     }
 }
@@ -232,10 +232,7 @@ private fun GameHeading(text: String, modifier: Modifier = Modifier) {
         modifier = modifier
             .background(WbSurface)
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .semantics {
-                heading()
-                traversalIndex = -1f
-            }
+            .semantics { heading() }
     )
 }
 
@@ -489,10 +486,7 @@ private fun LandscapeHeading(text: String, modifier: Modifier = Modifier) {
         modifier = modifier
             .background(WbSurface)
             .padding(horizontal = 12.dp, vertical = 4.dp)
-            .semantics {
-                heading()
-                traversalIndex = -1f
-            }
+            .semantics { heading() }
     )
 }
 

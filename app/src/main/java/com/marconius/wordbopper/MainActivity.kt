@@ -6,10 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -23,21 +20,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.marconius.wordbopper.ui.theme.WbBackground
-import com.marconius.wordbopper.ui.theme.WbText
 import androidx.lifecycle.lifecycleScope
 import com.marconius.wordbopper.monarch.MonarchDisplayController
 import com.marconius.wordbopper.model.GameScreen
@@ -48,6 +36,7 @@ import com.marconius.wordbopper.ui.rememberReduceMotion
 import com.marconius.wordbopper.ui.screens.StartScreen
 import com.marconius.wordbopper.ui.theme.WordBopperTheme
 import com.marconius.wordbopper.viewmodel.GameViewModel
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private val viewModel: GameViewModel by viewModels()
@@ -92,7 +81,12 @@ class MainActivity : ComponentActivity() {
                 WordBopperApp(viewModel = viewModel)
                 AccessibilityAnnouncementHost(
                     serial = announcementSerial,
-                    message = currentAnnouncement
+                    message = currentAnnouncement,
+                    onConsumed = { consumedMessage ->
+                        if (currentAnnouncement == consumedMessage) {
+                            currentAnnouncement = ""
+                        }
+                    }
                 )
                 ageSignalsMessage?.let { message ->
                     AgeSignalsDialog(
@@ -172,7 +166,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WordBopperApp(viewModel: GameViewModel) {
     when (viewModel.screen) {
-        GameScreen.LOADING -> LoadingScreen(onReady = { viewModel.warmUp() })
+        GameScreen.LOADING -> {
+            LaunchedEffect(viewModel) { viewModel.warmUpForPhone() }
+            StartScreen(viewModel)
+        }
         GameScreen.START -> StartScreen(viewModel)
         GameScreen.GAME -> GameScreen(viewModel)
         GameScreen.RESULTS -> ResultsScreen(viewModel)
@@ -180,44 +177,17 @@ fun WordBopperApp(viewModel: GameViewModel) {
 }
 
 @Composable
-private fun LoadingScreen(onReady: () -> Unit) {
-    // Kick off the warm-up exactly once when this screen first appears.
-    LaunchedEffect(Unit) { onReady() }
-
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(WbBackground),
-        contentAlignment = Alignment.Center
-    ) {
-        // A live-region heading so TalkBack speaks the cue as soon as the screen appears,
-        // independent of the in-game announcement verbosity setting.
-        Text(
-            text = "Loading WordBopper…",
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
-            fontWeight = FontWeight.Black,
-            color = WbText,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(24.dp)
-                .focusRequester(focusRequester)
-                .semantics {
-                    heading()
-                    liveRegion = LiveRegionMode.Polite
-                    contentDescription = "Loading WordBopper"
-                }
-        )
-    }
-}
-
-@Composable
-private fun AccessibilityAnnouncementHost(serial: Int, message: String) {
+private fun AccessibilityAnnouncementHost(
+    serial: Int,
+    message: String,
+    onConsumed: (String) -> Unit
+) {
     if (message.isBlank()) return
     key(serial) {
+        LaunchedEffect(serial, message) {
+            delay(1_000)
+            onConsumed(message)
+        }
         Box(
             modifier = Modifier
                 .size(1.dp)
