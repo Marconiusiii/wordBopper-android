@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,12 +50,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -84,8 +89,13 @@ import com.marconius.wordbopper.viewmodel.GameViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StartScreen(vm: GameViewModel) {
+    val headingFocusRequester = remember { FocusRequester() }
     var showInstructions by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        headingFocusRequester.requestFocus()
+    }
 
     Column(
         modifier = Modifier
@@ -95,15 +105,18 @@ fun StartScreen(vm: GameViewModel) {
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
+            .semantics { paneTitle = "WordBopper" }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 72.dp)
                 .padding(top = 24.dp, bottom = 8.dp)
+                .focusRequester(headingFocusRequester)
                 .semantics(mergeDescendants = true) {
                     heading()
                 }
+                .focusable()
         ) {
             Text(
                 text = "WordBopper",

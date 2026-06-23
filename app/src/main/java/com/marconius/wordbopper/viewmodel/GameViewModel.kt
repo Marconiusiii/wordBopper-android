@@ -139,8 +139,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var timerJob: Job? = null
     private var powerUpTimerJob: Job? = null
     private var startGameJob: Job? = null
-    private var phoneWarmUpJob: Job? = null
-    private var phoneWarmUpLanguage: DictionaryLanguage? = null
     private val consumedBopAwayBubbleIds = mutableSetOf<UUID>()
 
     // Computed
@@ -224,13 +222,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun warmUpForPhone() {
         if (warmUpStarted) return
         warmUpStarted = true
-        screen = GameScreen.START
         audio.warmUp()
 
         val language = dictionaryLanguage
-        phoneWarmUpLanguage = language
-        phoneWarmUpJob = viewModelScope.launch(Dispatchers.IO) {
-            dictionary.preload(language)
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                dictionary.preload(language)
+            }
+            screen = GameScreen.START
         }
     }
 
@@ -351,9 +350,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         startGameJob = viewModelScope.launch {
-            if (phoneWarmUpLanguage == language) {
-                phoneWarmUpJob?.join()
-            }
             if (!dictionary.isLoaded(language)) {
                 withContext(Dispatchers.IO) {
                     dictionary.preload(language)

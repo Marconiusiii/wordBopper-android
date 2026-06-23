@@ -9,6 +9,15 @@ import java.util.Locale
 class DictionaryService private constructor(context: Context) {
     private val resources = context.resources
     private val wordsByLanguage = ConcurrentHashMap<DictionaryLanguage, Set<String>>()
+    private val locales = DictionaryLanguage.entries.associateWith { language ->
+        Locale.forLanguageTag(language.speechLanguage)
+    }
+    private val protectedCharactersByLanguage = mapOf(
+        DictionaryLanguage.SPANISH to mapOf("ñ" to "__WB_NTILDE__"),
+        DictionaryLanguage.FRENCH to mapOf("ç" to "__WB_CCEDILLA__"),
+        DictionaryLanguage.BRAZILIAN_PORTUGUESE to mapOf("ç" to "__WB_CCEDILLA__"),
+        DictionaryLanguage.GERMAN to mapOf("ß" to "__WB_ESZETT__")
+    )
 
     fun contains(word: String, language: DictionaryLanguage = DictionaryLanguage.ENGLISH): Boolean {
         return words(language).contains(normalized(word, language))
@@ -36,22 +45,17 @@ class DictionaryService private constructor(context: Context) {
     }
 
     fun normalized(word: String, language: DictionaryLanguage): String {
-        val protectedCharacters = when (language) {
-            DictionaryLanguage.ENGLISH,
-            DictionaryLanguage.DUTCH,
-            DictionaryLanguage.ITALIAN -> emptyMap()
-            DictionaryLanguage.SPANISH -> mapOf("ñ" to "__WB_NTILDE__")
-            DictionaryLanguage.FRENCH,
-            DictionaryLanguage.BRAZILIAN_PORTUGUESE -> mapOf("ç" to "__WB_CCEDILLA__")
-            DictionaryLanguage.GERMAN -> mapOf("ß" to "__WB_ESZETT__")
+        var normalizedWord = word.trim().lowercase(locales.getValue(language))
+        if (normalizedWord.all { character -> character.code < 128 }) {
+            return normalizedWord
         }
 
-        var normalizedWord = word.trim().lowercase(Locale.forLanguageTag(language.speechLanguage))
+        val protectedCharacters = protectedCharactersByLanguage[language].orEmpty()
         protectedCharacters.forEach { (character, token) ->
             normalizedWord = normalizedWord.replace(character, token)
         }
         normalizedWord = Normalizer.normalize(normalizedWord, Normalizer.Form.NFD)
-            .replace(Regex("\\p{Mn}+"), "")
+            .replace(COMBINING_MARKS, "")
             .replace("æ", "ae")
             .replace("œ", "oe")
         protectedCharacters.forEach { (character, token) ->
@@ -63,6 +67,8 @@ class DictionaryService private constructor(context: Context) {
     }
 
     companion object {
+        private val COMBINING_MARKS = Regex("\\p{Mn}+")
+
         @Volatile private var instance: DictionaryService? = null
 
         fun getInstance(context: Context): DictionaryService =
