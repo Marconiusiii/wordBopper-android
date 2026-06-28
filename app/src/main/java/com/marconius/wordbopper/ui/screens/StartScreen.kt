@@ -25,13 +25,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -62,9 +59,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -607,7 +607,6 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
                 onValueChange = { vm.setGameVolume(it) }
             )
         }
-        item { SettingsDescription("Set how loud the game sounds should be.") }
 
         item {
             SettingsPickerBlock(title = "Game Announcements") {
@@ -769,7 +768,6 @@ private fun SettingsPickerBlock(title: String, content: @Composable () -> Unit) 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsDropdown(
     title: String,
@@ -779,27 +777,45 @@ private fun SettingsDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     SettingsPickerBlock(title = title) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = selectedLabel,
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                label = { Text(title) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
                 modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                     .fillMaxWidth()
-            )
-            ExposedDropdownMenu(
+                    .heightIn(min = 56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(WbSurface)
+                    .border(1.dp, WbPanel, RoundedCornerShape(8.dp))
+                    .clickable { expanded = true }
+                    .clearAndSetSemantics {
+                        contentDescription = "$title, $selectedLabel"
+                        role = Role.Button
+                        onClick(label = "open menu") {
+                            expanded = true
+                            true
+                        }
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedLabel,
+                    fontSize = 16.sp,
+                    lineHeight = 20.sp,
+                    color = WbText,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "Menu",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = WbAccent5
+                )
+            }
+
+            DropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 options.forEach { (label, action) ->
                     DropdownMenuItem(
@@ -830,25 +846,33 @@ private fun SettingsDescription(text: String) {
 
 @Composable
 private fun SettingsSliderRow(title: String, value: Float, onValueChange: (Float) -> Unit) {
-    Column(
+    val clampedValue = value.coerceIn(0f, 1f)
+    val percent = (clampedValue * 100).toInt()
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 10.dp)
     ) {
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            lineHeight = 20.sp,
-            color = WbText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 32.dp)
-        )
         Slider(
-            value = value,
+            value = clampedValue,
             onValueChange = onValueChange,
             valueRange = 0f..1f,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics {
+                    contentDescription = title
+                    stateDescription = "$percent percent"
+                    progressBarRangeInfo = ProgressBarRangeInfo(
+                        current = clampedValue,
+                        range = 0f..1f,
+                        steps = 0
+                    )
+                    setProgress { target ->
+                        onValueChange(target.coerceIn(0f, 1f))
+                        true
+                    }
+                }
         )
     }
 }
