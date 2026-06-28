@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.model.Bubble
+import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
@@ -54,6 +55,7 @@ fun BubbleGrid(
     columns: Int,
     rows: Int,
     textColorOption: BubbleTextColorOption,
+    colorTheme: BubbleColorTheme,
     letterStyle: BubbleLetterStyle,
     dictionaryLanguage: DictionaryLanguage,
     letterPositionMode: LetterPositionMode,
@@ -77,6 +79,7 @@ fun BubbleGrid(
                         isSelected = isSelected,
                         visualSize = cellSize,
                         textColorOption = textColorOption,
+                        colorTheme = colorTheme,
                         letterStyle = letterStyle,
                         dictionaryLanguage = dictionaryLanguage,
                         letterPositionMode = letterPositionMode,
@@ -99,6 +102,7 @@ private fun BubbleCell(
     isSelected: Boolean,
     visualSize: Dp,
     textColorOption: BubbleTextColorOption,
+    colorTheme: BubbleColorTheme,
     letterStyle: BubbleLetterStyle,
     dictionaryLanguage: DictionaryLanguage,
     letterPositionMode: LetterPositionMode,
@@ -107,7 +111,7 @@ private fun BubbleCell(
     modifier: Modifier = Modifier,
     onTap: () -> Unit
 ) {
-    val fills = bubbleFills(textColorOption)
+    val fills = bubbleFills(textColorOption, colorTheme)
     val fillColor = if (isSelected) selectedBubbleFill(textColorOption)
         else fills.getOrElse(bubble.colorIndex) { fills[0] }
     val textColor = if (isSelected) selectedBubbleTextColor(textColorOption)

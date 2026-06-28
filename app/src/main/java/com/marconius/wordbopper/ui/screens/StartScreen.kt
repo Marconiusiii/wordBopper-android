@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -68,6 +71,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marconius.wordbopper.model.BestGame
+import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
@@ -84,6 +88,8 @@ import com.marconius.wordbopper.ui.theme.WbMuted
 import com.marconius.wordbopper.ui.theme.WbPanel
 import com.marconius.wordbopper.ui.theme.WbSurface
 import com.marconius.wordbopper.ui.theme.WbText
+import com.marconius.wordbopper.ui.theme.bubbleFills
+import com.marconius.wordbopper.ui.theme.bubbleTextColor
 import com.marconius.wordbopper.viewmodel.GameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -577,6 +583,33 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         item { SettingsDescription("Pick your preference of light or dark text for the bubbles. Either option will still have colorful bubbles to bop!") }
 
         item {
+            SettingsDropdown(
+                title = "Bubble Color Theme",
+                selectedLabel = vm.bubbleColorTheme.label,
+                options = BubbleColorTheme.optionsFor(vm.bubbleTextColorOption)
+                    .map { theme -> theme.label to { vm.setBubbleColorTheme(theme) } }
+            )
+        }
+        item { SettingsDescription("Choose a bubble color set that feels good to play with. Every theme keeps the letter contrast strong.") }
+        item {
+            BubbleThemePreview(
+                textColorOption = vm.bubbleTextColorOption,
+                colorTheme = vm.bubbleColorTheme,
+                letterStyle = vm.bubbleLetterStyle
+            )
+        }
+
+        item { SettingsSectionLabel("Game Volume") }
+        item {
+            SettingsSliderRow(
+                title = "Game Volume",
+                value = vm.gameVolume,
+                onValueChange = { vm.setGameVolume(it) }
+            )
+        }
+        item { SettingsDescription("Set how loud the game sounds should be.") }
+
+        item {
             SettingsPickerBlock(title = "Game Announcements") {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     GameAnnouncementVerbosity.entries.forEachIndexed { index, verbosity ->
@@ -644,6 +677,50 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             dragHandle = null
         ) {
             AboutSheetContent(vm = vm) { showAbout = false }
+        }
+    }
+}
+
+@Composable
+private fun BubbleThemePreview(
+    textColorOption: BubbleTextColorOption,
+    colorTheme: BubbleColorTheme,
+    letterStyle: BubbleLetterStyle
+) {
+    val palette = bubbleFills(textColorOption, colorTheme)
+    val textColor = bubbleTextColor(textColorOption)
+    val sampleLetters = listOf("B", "O", "P")
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 76.dp)
+            .padding(horizontal = 24.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(WbBackground)
+            .clearAndSetSemantics {},
+        contentAlignment = Alignment.Center
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            sampleLetters.forEachIndexed { index, letter ->
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(palette[index % palette.size]),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = letter,
+                        fontSize = 24.sp,
+                        lineHeight = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = letterStyle.fontFamily,
+                        textAlign = TextAlign.Center,
+                        color = textColor
+                    )
+                }
+            }
         }
     }
 }
@@ -749,6 +826,31 @@ private fun SettingsDescription(text: String) {
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 10.dp)
     )
+}
+
+@Composable
+private fun SettingsSliderRow(title: String, value: Float, onValueChange: (Float) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            color = WbText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 32.dp)
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0f..1f,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable

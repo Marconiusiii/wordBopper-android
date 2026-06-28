@@ -16,6 +16,7 @@ import com.marconius.wordbopper.data.GameplayAnnouncements
 import com.marconius.wordbopper.haptics.HapticsEngine
 import com.marconius.wordbopper.model.BestGame
 import com.marconius.wordbopper.model.Bubble
+import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
@@ -83,6 +84,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var bubbleTextColorOption by mutableStateOf(BubbleTextColorOption.DARK)
         private set
+    var bubbleColorTheme by mutableStateOf(BubbleColorTheme.CLASSIC_BRIGHT)
+        private set
     var bubbleLetterStyle by mutableStateOf(BubbleLetterStyle.PLAYFUL)
         private set
     var dictionaryLanguage by mutableStateOf(DictionaryLanguage.ENGLISH)
@@ -96,6 +99,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var leftHandedMode by mutableStateOf(false)
         private set
     var gameHapticsEnabled by mutableStateOf(true)
+        private set
+    var gameVolume by mutableStateOf(0.82f)
         private set
 
     // When the Monarch tactile display drives the game, the board is locked to the
@@ -187,6 +192,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         letterPositionMode = loadLetterPositionMode()
         speakLetterPhonetics = prefs.getBoolean("wordBopSpeakLetterPhonetics", false)
         bubbleTextColorOption = loadBubbleTextColorOption()
+        bubbleColorTheme = loadBubbleColorTheme(bubbleTextColorOption)
         bubbleLetterStyle = loadBubbleLetterStyle()
         dictionaryLanguage = loadDictionaryLanguage()
         gameAnnouncementVerbosity = loadGameAnnouncementVerbosity()
@@ -195,6 +201,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         leftHandedMode = prefs.getBoolean("wordBopLeftHandedMode", false)
         gameHapticsEnabled = prefs.getBoolean("wordBopGameHapticsEnabled", true)
         haptics.isEnabled = gameHapticsEnabled
+        gameVolume = loadGameVolume()
+        audio.volume = gameVolume
         boardColumns = gridSizeOption.dimension
         boardRows = gridSizeOption.dimension
     }
@@ -271,7 +279,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     @JvmName("updateBubbleTextColorOption")
     fun setBubbleTextColorOption(option: BubbleTextColorOption) {
         bubbleTextColorOption = option
+        if (!bubbleColorTheme.supports(option)) {
+            bubbleColorTheme = BubbleColorTheme.defaultFor(option)
+            prefs.edit().putString("wordBopBubbleColorTheme", bubbleColorTheme.name).apply()
+        }
         prefs.edit().putString("wordBopBubbleTextColorOption", option.name).apply()
+    }
+
+    @JvmName("updateBubbleColorTheme")
+    fun setBubbleColorTheme(theme: BubbleColorTheme) {
+        bubbleColorTheme = if (theme.supports(bubbleTextColorOption)) {
+            theme
+        } else {
+            BubbleColorTheme.defaultFor(bubbleTextColorOption)
+        }
+        prefs.edit().putString("wordBopBubbleColorTheme", bubbleColorTheme.name).apply()
     }
 
     @JvmName("updateBubbleLetterStyle")
@@ -329,6 +351,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         gameHapticsEnabled = value
         haptics.isEnabled = value
         prefs.edit().putBoolean("wordBopGameHapticsEnabled", value).apply()
+    }
+
+    @JvmName("updateGameVolume")
+    fun setGameVolume(value: Float) {
+        gameVolume = value.coerceIn(0f, 1f)
+        audio.volume = gameVolume
+        prefs.edit().putFloat("wordBopGameVolume", gameVolume).apply()
     }
 
     // MARK: - Game lifecycle
@@ -915,6 +944,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         return BubbleTextColorOption.entries.find { it.name == saved } ?: BubbleTextColorOption.DARK
     }
 
+    private fun loadBubbleColorTheme(option: BubbleTextColorOption): BubbleColorTheme {
+        val saved = prefs.getString("wordBopBubbleColorTheme", null)
+        val theme = BubbleColorTheme.entries.find { it.name == saved }
+        return if (theme != null && theme.supports(option)) theme else BubbleColorTheme.defaultFor(option)
+    }
+
     private fun loadBubbleLetterStyle(): BubbleLetterStyle {
         val saved = prefs.getString("wordBopBubbleLetterStyle", null)
         return BubbleLetterStyle.entries.find { it.name == saved } ?: BubbleLetterStyle.PLAYFUL
@@ -933,6 +968,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadGridSizeOption(): GridSizeOption {
         val saved = prefs.getInt("wordBopGridSize", GridSizeOption.FIVE.dimension)
         return GridSizeOption.entries.find { it.dimension == saved } ?: GridSizeOption.FIVE
+    }
+
+    private fun loadGameVolume(): Float {
+        return if (prefs.contains("wordBopGameVolume")) {
+            prefs.getFloat("wordBopGameVolume", 0.82f).coerceIn(0f, 1f)
+        } else {
+            0.82f
+        }
     }
 
     override fun onCleared() {

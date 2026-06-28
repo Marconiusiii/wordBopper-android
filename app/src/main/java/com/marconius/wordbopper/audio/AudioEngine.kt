@@ -36,6 +36,13 @@ class AudioEngine(
     private var powerUpJob: Job? = null
     private val activeTracks = CopyOnWriteArrayList<AudioTrack>()
     private val audioManager = context.getSystemService(AudioManager::class.java)
+    @Volatile private var masterVolume = 0.82f
+
+    var volume: Float
+        get() = masterVolume
+        set(value) {
+            masterVolume = value.coerceIn(0f, 1f)
+        }
 
     private val audioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
@@ -349,8 +356,9 @@ class AudioEngine(
     }
 
     private fun FloatArray.toShortArray(): ShortArray {
+        val gain = masterVolume
         return ShortArray(size) { index ->
-            (this[index].coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort()
+            ((this[index] * gain).coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort()
         }
     }
 

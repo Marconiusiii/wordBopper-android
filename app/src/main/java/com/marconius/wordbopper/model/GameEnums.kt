@@ -25,6 +25,40 @@ enum class BubbleTextColorOption(val label: String) {
     LIGHT("Light Text")
 }
 
+enum class BubbleColorTheme(val label: String, val textColorOption: BubbleTextColorOption) {
+    CLASSIC_BRIGHT("Classic Bright", BubbleTextColorOption.DARK),
+    PASTEL("Pastel", BubbleTextColorOption.DARK),
+    SPRING("Spring", BubbleTextColorOption.DARK),
+    SUMMER("Summer", BubbleTextColorOption.DARK),
+    CANDY("Candy", BubbleTextColorOption.DARK),
+    GARDEN("Garden", BubbleTextColorOption.DARK),
+    SUNRISE("Sunrise", BubbleTextColorOption.DARK),
+    SKY("Sky", BubbleTextColorOption.DARK),
+    SOFT_WHITE("Soft White", BubbleTextColorOption.DARK),
+    CLASSIC_DEEP("Classic Deep", BubbleTextColorOption.LIGHT),
+    NEON("Neon", BubbleTextColorOption.LIGHT),
+    FALL("Fall", BubbleTextColorOption.LIGHT),
+    WINTER("Winter", BubbleTextColorOption.LIGHT),
+    FOREST("Forest", BubbleTextColorOption.LIGHT),
+    OCEAN("Ocean", BubbleTextColorOption.LIGHT),
+    SUNSET("Sunset", BubbleTextColorOption.LIGHT),
+    GALAXY("Galaxy", BubbleTextColorOption.LIGHT),
+    SOFT_CHARCOAL("Soft Charcoal", BubbleTextColorOption.LIGHT);
+
+    fun supports(option: BubbleTextColorOption): Boolean = textColorOption == option
+
+    companion object {
+        fun optionsFor(option: BubbleTextColorOption): List<BubbleColorTheme> =
+            entries.filter { it.supports(option) }
+
+        fun defaultFor(option: BubbleTextColorOption): BubbleColorTheme =
+            when (option) {
+                BubbleTextColorOption.DARK -> CLASSIC_BRIGHT
+                BubbleTextColorOption.LIGHT -> CLASSIC_DEEP
+            }
+    }
+}
+
 enum class GridSizeOption(val dimension: Int, val label: String) {
     THREE(3, "3 by 3"),
     FOUR(4, "4 by 4"),
