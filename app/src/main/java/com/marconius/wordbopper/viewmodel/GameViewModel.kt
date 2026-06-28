@@ -419,7 +419,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         screen = GameScreen.GAME
-        audio.playRoundStartSound()
+        audio.playRoundStartSound(gameMode)
         if (showsTimer) startTimer()
     }
 

@@ -7,6 +7,7 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.util.Log
+import com.marconius.wordbopper.model.GameMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -67,17 +68,18 @@ class AudioEngine(
 
     fun playSelectSound() {
         val selectNotes = listOf(261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88,
-            523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50)
+            523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50,
+            1174.66, 1318.51, 1396.91, 1567.98, 1760.00, 1975.53, 2093.00)
         val step = selectNoteIndex
         selectNoteIndex += 1
         val freq = selectNotes[min(step, selectNotes.size - 1)]
-        val duration = if (step >= 3) 0.64 else 0.44
+        val duration = if (step >= 7) 1.08 else if (step >= 5) 0.94 else if (step >= 3) 0.78 else 0.44
         val ctx = SynthContext(duration, sampleRate)
         for ((mult, amp) in listOf(Pair(1.0, 0.58), Pair(2.0, 0.2), Pair(3.0, 0.08))) {
             ctx.addOsc(OscType.SINE, freq * mult, 0.0, 0.006, amp * 0.58, 0.38, 0.35, 0.05)
         }
         ctx.addNoise(0.0, 0.01, 0.18, highpass = true)
-        if (step >= 3) addSparkle(ctx, step, 1.0)
+        if (step >= 3) addSparkle(ctx, freq, step, 1.0)
         play(ctx.toFloatArray())
     }
 
@@ -96,12 +98,13 @@ class AudioEngine(
         val masterVol = if (wordLength >= 7) 1.0 else if (wordLength >= 5) 0.82 else 0.65
         val spacing = if (wordLength >= 7) 0.055 else if (wordLength >= 5) 0.065 else 0.075
         val notes = baseNotes.take(noteCount)
-        val ctx = SynthContext(spacing * noteCount + 0.9, sampleRate)
+        val rewardRelease = if (wordLength >= 7) 1.18 else if (wordLength >= 5) 1.05 else 0.92
+        val ctx = SynthContext(spacing * noteCount + rewardRelease + 0.25, sampleRate)
         for ((i, freq) in notes.withIndex()) {
             val nd = i * spacing
-            ctx.addOsc(OscType.SINE, freq, nd, 0.012, 0.38 * masterVol, 0.85, 0.45, 0.1)
-            ctx.addOsc(OscType.TRIANGLE, freq * 2, nd, 0.012, 0.12 * masterVol, 0.85, 0.45, 0.1)
-            ctx.addOsc(OscType.SINE, freq * 0.5, nd, 0.012, 0.18 * masterVol, 0.85, 0.45, 0.1)
+            ctx.addOsc(OscType.SINE, freq, nd, 0.012, 0.38 * masterVol, rewardRelease, 0.45, 0.1)
+            ctx.addOsc(OscType.TRIANGLE, freq * 2, nd, 0.012, 0.12 * masterVol, rewardRelease, 0.45, 0.1)
+            ctx.addOsc(OscType.SINE, freq * 0.5, nd, 0.012, 0.18 * masterVol, rewardRelease, 0.45, 0.1)
         }
         val subFreq = if (wordLength >= 5) 130.0 else 110.0
         val subVol = if (wordLength >= 7) 0.34 else if (wordLength >= 5) 0.26 else 0.18
@@ -132,12 +135,16 @@ class AudioEngine(
         val noteCount = if (wordLength >= 7) 8 else if (wordLength >= 5) 6 else 4
         val shimmerVol = if (wordLength >= 7) 0.26 else if (wordLength >= 5) 0.2 else 0.14
         val allNotes = listOf(1046.5, 1318.51, 1567.98, 2093.0, 2637.02, 3135.96, 4186.01, 5274.04)
-        val ctx = SynthContext(noteCount * 0.045 + 0.55, sampleRate)
+        val spacing = 0.05
+        val ctx = SynthContext(noteCount * spacing + 0.9, sampleRate)
         for ((i, freq) in allNotes.take(noteCount).withIndex()) {
             val type = if (i % 2 == 0) OscType.SINE else OscType.TRIANGLE
-            ctx.addOsc(type, freq, i * 0.045, 0.01, shimmerVol, 0.5,
+            ctx.addOsc(type, freq, i * spacing, 0.01, shimmerVol, 0.75,
                 filter = FilterSpec(FilterKind.BANDPASS, freq, 8.0))
         }
+        val finishStart = noteCount * spacing
+        ctx.addOsc(OscType.SINE, 2093.0, finishStart, 0.018, shimmerVol * 0.42, 0.72,
+            filter = FilterSpec(FilterKind.BANDPASS, 2093.0, 7.0))
         play(ctx.toFloatArray())
     }
 
@@ -179,7 +186,19 @@ class AudioEngine(
         play(ctx.toFloatArray())
     }
 
+    fun playRoundStartSound(gameMode: GameMode) {
+        when (gameMode) {
+            GameMode.TIMED -> playTimedRoundStartSound()
+            GameMode.BOPPLE -> playBoppleRoundStartSound()
+            GameMode.NON_STOP -> playNonStopRoundStartSound()
+        }
+    }
+
     fun playRoundStartSound() {
+        playTimedRoundStartSound()
+    }
+
+    private fun playTimedRoundStartSound() {
         val chordNotes = listOf(261.63, 329.63, 392.00, 523.25, 659.25, 783.99)
         val shapes = listOf(intArrayOf(0,1,2,3), intArrayOf(2,1,3,0),
             intArrayOf(1,3,2,4), intArrayOf(3,2,4,5), intArrayOf(4,2,3,1))
@@ -189,6 +208,33 @@ class AudioEngine(
             ctx.addOsc(OscType.SINE, freq, i * 0.07, 0.012, 0.27, 0.46)
             ctx.addOsc(OscType.TRIANGLE, freq * 2, i * 0.07, 0.012, 0.072, 0.46)
         }
+        play(ctx.toFloatArray())
+    }
+
+    private fun playBoppleRoundStartSound() {
+        val rollNotes = listOf(392.00, 523.25, 587.33, 659.25, 783.99, 1046.50)
+        val shapes = listOf(listOf(0, 2, 1, 3, 5), listOf(1, 0, 3, 2, 4), listOf(2, 3, 1, 4, 5))
+        val notes = shapes.random().map { rollNotes[it] }
+        val ctx = SynthContext(notes.size * 0.06 + 0.62, sampleRate)
+        for ((i, freq) in notes.withIndex()) {
+            val start = i * 0.06
+            ctx.addOsc(OscType.SINE, freq, start, 0.01, 0.22, 0.48, 0.4, 0.08)
+            ctx.addOsc(OscType.TRIANGLE, freq * 2, start, 0.006, 0.058, 0.36,
+                filter = FilterSpec(FilterKind.BANDPASS, freq * 2, 5.0))
+        }
+        ctx.addNoise(0.02, 0.08, 0.07, highpass = false, bandpass = true)
+        play(ctx.toFloatArray())
+    }
+
+    private fun playNonStopRoundStartSound() {
+        val chordNotes = listOf(261.63, 392.00, 523.25, 659.25, 783.99)
+        val ctx = SynthContext(1.04, sampleRate)
+        for ((i, freq) in chordNotes.withIndex()) {
+            val start = i * 0.035
+            ctx.addOsc(OscType.SINE, freq, start, 0.035, 0.18, 0.88, 0.42, 0.16)
+            ctx.addOsc(OscType.TRIANGLE, freq * 2, start, 0.028, 0.035, 0.7, 0.3, 0.14)
+        }
+        ctx.addOscWithFreqSlide(523.25, 783.99, 0.18, 0.38, 0.055)
         play(ctx.toFloatArray())
     }
 
@@ -229,9 +275,16 @@ class AudioEngine(
         val chordTones = listOf(261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98)
         var idx = (0..4).random()
         val notesList = mutableListOf<Double>()
+        val usedIndexes = mutableSetOf<Int>()
         repeat(6) {
             notesList.add(chordTones[idx])
-            idx = (idx + listOf(-2, -1, 1, 2, 3).random()).coerceIn(0, chordTones.size - 1)
+            usedIndexes.add(idx)
+            val turnCandidates = listOf(-3, -2, -1, 1, 2, 3)
+                .map { idx + it }
+                .filter { it in chordTones.indices && it != idx && !usedIndexes.contains(it) }
+            idx = turnCandidates.randomOrNull()
+                ?: chordTones.indices.filter { it != idx && !usedIndexes.contains(it) }.randomOrNull()
+                ?: idx
         }
         notesList.add(2093.0)
         val ctx = SynthContext(notesList.size * 0.085 + 0.75, sampleRate)
@@ -279,21 +332,27 @@ class AudioEngine(
         activeTracks.clear()
     }
 
-    private fun addSparkle(ctx: SynthContext, step: Int, masterGain: Double) {
-        val sparkleNotes = listOf(659.25, 698.46, 783.99, 880.00, 987.77, 1046.50,
-            1174.66, 1318.51, 1396.91, 1567.98)
-        val sparkleCount = min(4, max(3, step - 1))
-        val sparkleGain = min(0.07, 0.024 + (step - 3) * 0.007) * masterGain
-        val rootIndex = min(step - 3, sparkleNotes.size - 4)
-        val phrase = sparkleNotes.drop(rootIndex).take(sparkleCount).toMutableList()
+    private fun addSparkle(ctx: SynthContext, rootFrequency: Double, step: Int, masterGain: Double) {
+        val sparkleScale = listOf(261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88,
+            523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50,
+            1174.66, 1318.51, 1396.91, 1567.98, 1760.00, 1975.53, 2093.00,
+            2349.32, 2637.02, 2793.83, 3135.96, 3520.00, 3951.07, 4186.01)
+        val sparkleCount = min(4, max(1, step - 2))
+        val sparkleGain = min(0.082, 0.026 + (step - 3) * 0.008) * masterGain
+        val selectedRootIndex = sparkleScale.indexOfLast { it <= rootFrequency }.coerceAtLeast(0)
+        val rootIndex = min(max(0, selectedRootIndex - 2), max(0, sparkleScale.size - sparkleCount))
+        val phrase = sparkleScale.drop(rootIndex).take(sparkleCount).toMutableList()
         if (step >= 7 && phrase.size > 1) {
             val last = phrase.removeAt(phrase.lastIndex)
             phrase.shuffle()
             phrase.add(last)
         }
         for ((i, freq) in phrase.withIndex()) {
-            ctx.addOsc(OscType.SINE, freq, 0.055 + i * 0.06, 0.018, sparkleGain, 0.36,
-                filter = FilterSpec(FilterKind.LOWPASS, 2400.0, 0.7))
+            val delay = 0.055 + i * 0.06
+            ctx.addOsc(OscType.SINE, freq, delay, 0.018, sparkleGain, 0.48,
+                filter = FilterSpec(FilterKind.LOWPASS, 2600.0, 0.7))
+            ctx.addOsc(OscType.TRIANGLE, freq * 2, delay + 0.006, 0.01, sparkleGain * 0.16, 0.34,
+                filter = FilterSpec(FilterKind.BANDPASS, freq * 2, 5.0))
         }
     }
 
