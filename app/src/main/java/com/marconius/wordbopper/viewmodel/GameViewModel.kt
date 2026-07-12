@@ -19,6 +19,8 @@ import com.marconius.wordbopper.model.Bubble
 import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
+import com.marconius.wordbopper.model.DailyBopEntry
+import com.marconius.wordbopper.model.DailyBopLanguageStat
 import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
@@ -37,6 +39,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Calendar
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.min
@@ -141,8 +144,29 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var bestGame by mutableStateOf(BestGame())
         private set
 
+    var dailyBopTargetWord by mutableStateOf<String?>(null)
+        private set
+    var dailyBopTargetLanguage by mutableStateOf<DictionaryLanguage?>(null)
+        private set
+    var dailyBopFoundThisRound by mutableStateOf(false)
+        private set
+    var dailyBopBoostActive by mutableStateOf(false)
+        private set
+    var dailyBopBoostSecondsLeft by mutableIntStateOf(0)
+        private set
+    var dailyBopEntries by mutableStateOf<List<DailyBopEntry>>(emptyList())
+        private set
+    var dailyBopEntriesReady by mutableStateOf(false)
+        private set
+    var dailyBopEntriesLoading by mutableStateOf(false)
+        private set
+    var dailyBopEnabledLanguages by mutableStateOf<List<DictionaryLanguage>>(emptyList())
+        private set
+
     private var timerJob: Job? = null
     private var powerUpTimerJob: Job? = null
+    private var dailyBopTimerJob: Job? = null
+    private var dailyBopEntriesJob: Job? = null
     private var startGameJob: Job? = null
     private val consumedBopAwayBubbleIds = mutableSetOf<UUID>()
 
@@ -167,13 +191,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         else "Word tray: " + selected.joinToString(", ") { it.letter.lowercase() }
 
     val chainMeterValue: String
-        get() = if (chainPowerUpActive)
+        get() = if (dailyBopBoostActive)
+            "Daily Bop 3 times boost active, $dailyBopBoostSecondsLeft seconds left"
+        else if (chainPowerUpActive)
             "3 times chain bop active"
         else "$connectedWordStreak of 3 chains"
 
     val chainMeterProgress: Double
-        get() = if (chainPowerUpActive) (chainPowerUpSecondsLeft.toDouble() / 15.0) * 3.0
+        get() = if (dailyBopBoostActive) (dailyBopBoostSecondsLeft.toDouble() / 45.0) * 3.0
+        else if (chainPowerUpActive) (chainPowerUpSecondsLeft.toDouble() / 15.0) * 3.0
         else connectedWordStreak.toDouble()
+
+    val totalDailyBopsFound: Int
+        get() = bestGame.dailyBopLanguageStats.sumOf { it.foundCount }
+
+    val currentDailyBopRank: String
+        get() = dailyBopRank(totalDailyBopsFound)
+
+    val dailyBopStats: List<DailyBopLanguageStat>
+        get() = bestGame.dailyBopLanguageStats
+            .filter { it.foundCount > 0 }
+            .sortedBy { it.language.label }
 
     val headerAccessibilityLabel: String
         get() = if (!showsTimer) "Score: $score, Words: $wordCount"
@@ -203,6 +241,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         haptics.isEnabled = gameHapticsEnabled
         gameVolume = loadGameVolume()
         audio.volume = gameVolume
+        dailyBopEnabledLanguages = loadDailyBopEnabledLanguages(dictionaryLanguage)
         boardColumns = gridSizeOption.dimension
         boardRows = gridSizeOption.dimension
     }
@@ -221,8 +260,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             withContext(Dispatchers.IO) {
                 dictionary.preload(dictionaryLanguage)
                 audio.warmUp()
+                audio.prepareDailyBopAnthemPreview()
                 prebuildThrowawayRound()
             }
+            prepareDailyBopEntries()
             screen = GameScreen.START
         }
     }
@@ -236,7 +277,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 dictionary.preload(language)
+                audio.prepareDailyBopAnthemPreview()
             }
+            prepareDailyBopEntries()
             screen = GameScreen.START
         }
     }
@@ -311,12 +354,30 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audio.resetSelectSound()
         prefs.edit().putString("wordBopDictionaryLanguage", language.name).apply()
         preloadDictionary(language)
+        ensureDailyBopLanguageEnabled(language)
     }
 
     private fun preloadDictionary(language: DictionaryLanguage) {
         viewModelScope.launch(Dispatchers.IO) {
             dictionary.preload(language)
         }
+    }
+
+    fun isDailyBopLanguageEnabled(language: DictionaryLanguage): Boolean {
+        return normalizedDailyBopLanguages().contains(language)
+    }
+
+    fun setDailyBopLanguage(language: DictionaryLanguage, enabled: Boolean) {
+        val languages = normalizedDailyBopLanguages().toMutableList()
+        if (enabled) {
+            if (!languages.contains(language)) languages.add(language)
+        } else {
+            if (languages.size <= 1) return
+            languages.remove(language)
+        }
+        dailyBopEnabledLanguages = sortedDailyBopLanguages(languages)
+        saveDailyBopEnabledLanguages()
+        reloadDailyBopEntries()
     }
 
     @JvmName("updateGameAnnouncementVerbosity")
@@ -371,11 +432,20 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         boardRows = rows.coerceIn(3, 8)
     }
 
-    fun startGame() {
+    fun startGame(dailyBopEntry: DailyBopEntry? = null) {
         if (gameActive || startGameJob?.isActive == true) return
+        if (dailyBopEntry != null) {
+            dictionaryLanguage = dailyBopEntry.language
+            gameMode = GameMode.TIMED
+            prefs.edit()
+                .putString("wordBopDictionaryLanguage", dailyBopEntry.language.name)
+                .putString("wordBopGameMode", GameMode.TIMED.name)
+                .apply()
+            ensureDailyBopLanguageEnabled(dailyBopEntry.language)
+        }
         val language = dictionaryLanguage
         if (dictionary.isLoaded(language)) {
-            beginGame()
+            beginGame(dailyBopEntry)
             return
         }
         startGameJob = viewModelScope.launch {
@@ -384,11 +454,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     dictionary.preload(language)
                 }
             }
-            beginGame()
+            beginGame(dailyBopEntry)
         }
     }
 
-    private fun beginGame() {
+    private fun beginGame(dailyBopEntry: DailyBopEntry? = null) {
         if (gameActive) return
         bubbles.clear()
         selected.clear()
@@ -403,6 +473,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         connectedWordStreak = 0
         chainPowerUpActive = false
         chainPowerUpSecondsLeft = 0
+        stopDailyBopBoost(resetFound = true)
+        dailyBopTargetWord = dailyBopEntry?.word
+        dailyBopTargetLanguage = dailyBopEntry?.language
+        dailyBopFoundThisRound = false
         largestLetterChain = 0
         gameplayHeading = randomGameplayHeading()
         haptics.roundStarted()
@@ -428,6 +502,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         gamePaused = true
         stopTimer()
         pausePowerUpCountdown()
+        pauseDailyBopBoost()
         if (playSound) audio.playPauseSound()
     }
 
@@ -437,6 +512,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audio.playResumeSound()
         if (showsTimer) startTimer()
         if (chainPowerUpActive) startPowerUpCountdown(audioDelayMs = 550)
+        if (dailyBopBoostActive) resumeDailyBopBoost(audioDelayMs = 550)
     }
 
     fun endGame() {
@@ -445,6 +521,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         gamePaused = false
         stopTimer()
         stopPowerUpTimer()
+        stopDailyBopBoost(resetFound = false)
         audio.playRoundEndSound()
         haptics.roundEnded()
         viewModelScope.launch {
@@ -551,7 +628,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         val chainBonus = if (gameMode == GameMode.BOPPLE) 0 else calcChainBonus()
         val basePoints = calcScore(word) + chainBonus
-        val multiplier = if (gameMode == GameMode.BOPPLE) 1 else if (chainPowerUpActive) 3 else 1
+        val dailyBopWasFound = isDailyBopWord(word)
+        val dailyBopCanActivate = dailyBopWasFound && canActivateDailyBopBoostToday()
+        val multiplier = if (gameMode == GameMode.BOPPLE) 1 else if (dailyBopBoostActive || chainPowerUpActive || dailyBopCanActivate) 3 else 1
         val points = basePoints * multiplier
 
         val scoredIds = selected.map { it.bubbleId }
@@ -569,7 +648,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (gameMode != GameMode.BOPPLE && chainBonus > largestLetterChain) largestLetterChain = chainBonus
 
         if (multiplier > 1) {
-            stopPowerUpTimer()
+            if (chainPowerUpActive && !dailyBopBoostActive && !dailyBopCanActivate) {
+                stopPowerUpTimer()
+            }
             audio.playChainMultiplierScoreSound(word.length)
             haptics.powerUpScored()
         } else {
@@ -577,10 +658,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             haptics.wordScored(word.length)
         }
 
-        val powerUpActivated = if (gameMode == GameMode.BOPPLE) false else updateChainStreak(chainBonus)
+        val dailyBopActivated = dailyBopCanActivate && activateDailyBopBoostIfNeeded()
+        val powerUpActivated = if (gameMode == GameMode.BOPPLE || dailyBopActivated) false else updateChainStreak(chainBonus)
 
         announce(
-            GameplayAnnouncements.scoredWord(word, points, chainBonus, multiplier, powerUpActivated, gameAnnouncementVerbosity),
+            GameplayAnnouncements.scoredWord(
+                word = word,
+                points = points,
+                chainBonus = chainBonus,
+                multiplier = multiplier,
+                powerUpActivated = powerUpActivated,
+                verbosity = gameAnnouncementVerbosity,
+                dailyBopActivated = dailyBopActivated
+            ),
             includeInLowVerbosity = true
         )
     }
@@ -687,6 +777,168 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audio.stopPowerUpChimes()
     }
 
+    // MARK: - Daily Bop
+
+    fun prepareDailyBopEntries() {
+        if (dailyBopEntriesReady || dailyBopEntriesLoading) return
+        val languages = normalizedDailyBopLanguages()
+        dailyBopEntriesLoading = true
+        dailyBopEntriesJob?.cancel()
+        dailyBopEntriesJob = viewModelScope.launch {
+            val entries = withContext(Dispatchers.IO) {
+                languages.mapNotNull { language ->
+                    val word = dictionary.dailyWord(language)
+                    if (word.isBlank()) null else DailyBopEntry(language, word)
+                }
+            }
+            dailyBopEntries = entries
+            dailyBopEntriesLoading = false
+            dailyBopEntriesReady = true
+        }
+    }
+
+    fun dailyBopWasFoundToday(language: DictionaryLanguage): Boolean {
+        val dateKey = dailyBopDateKey()
+        return bestGame.dailyBopLanguageStats.any {
+            it.language == language && it.lastFoundDateKey == dateKey
+        }
+    }
+
+    private fun reloadDailyBopEntries() {
+        dailyBopEntriesJob?.cancel()
+        dailyBopEntries = emptyList()
+        dailyBopEntriesReady = false
+        dailyBopEntriesLoading = false
+        prepareDailyBopEntries()
+    }
+
+    private fun ensureDailyBopLanguageEnabled(language: DictionaryLanguage) {
+        val languages = normalizedDailyBopLanguages().toMutableList()
+        if (languages.contains(language)) return
+        languages.add(language)
+        dailyBopEnabledLanguages = sortedDailyBopLanguages(languages)
+        saveDailyBopEnabledLanguages()
+        reloadDailyBopEntries()
+    }
+
+    private fun normalizedDailyBopLanguages(): List<DictionaryLanguage> {
+        val saved = dailyBopEnabledLanguages.filter { DictionaryLanguage.entries.contains(it) }
+        val languages = saved.ifEmpty { listOf(DictionaryLanguage.ENGLISH, dictionaryLanguage).distinct() }
+        return sortedDailyBopLanguages(languages)
+    }
+
+    private fun sortedDailyBopLanguages(languages: Collection<DictionaryLanguage>): List<DictionaryLanguage> {
+        return languages.distinct().sortedBy { DictionaryLanguage.entries.indexOf(it) }
+    }
+
+    private fun isDailyBopWord(word: String): Boolean {
+        val targetWord = dailyBopTargetWord ?: return false
+        val targetLanguage = dailyBopTargetLanguage ?: return false
+        if (targetLanguage != dictionaryLanguage) return false
+        return dictionary.normalized(word, dictionaryLanguage) == targetWord
+    }
+
+    private fun canActivateDailyBopBoostToday(): Boolean {
+        if (dailyBopFoundThisRound) return false
+        val language = dailyBopTargetLanguage ?: return false
+        return !dailyBopWasFoundToday(language)
+    }
+
+    private fun activateDailyBopBoostIfNeeded(): Boolean {
+        if (dailyBopFoundThisRound) return false
+        val language = dailyBopTargetLanguage ?: return false
+        if (dailyBopWasFoundToday(language)) return false
+        dailyBopFoundThisRound = true
+        recordDailyBopFound(language)
+        pausePowerUpCountdown()
+        dailyBopBoostActive = true
+        dailyBopBoostSecondsLeft = 45
+        haptics.powerUpActivated()
+        resumeDailyBopBoost()
+        return true
+    }
+
+    private fun pauseDailyBopBoost() {
+        dailyBopTimerJob?.cancel()
+        dailyBopTimerJob = null
+        audio.stopDailyBopAnthem()
+    }
+
+    private fun resumeDailyBopBoost(audioDelayMs: Long = 0) {
+        if (!dailyBopBoostActive || dailyBopBoostSecondsLeft <= 0) return
+        dailyBopTimerJob?.cancel()
+        dailyBopTimerJob = viewModelScope.launch {
+            if (audioDelayMs > 0) delay(audioDelayMs)
+            if (!dailyBopBoostActive || gamePaused) return@launch
+            audio.playDailyBopAnthem()
+            while (dailyBopBoostSecondsLeft > 0) {
+                delay(1000)
+                dailyBopBoostSecondsLeft--
+                if (dailyBopBoostSecondsLeft <= 0) {
+                    stopDailyBopBoost(resetFound = false)
+                    break
+                }
+            }
+        }
+    }
+
+    private fun stopDailyBopBoost(resetFound: Boolean) {
+        dailyBopBoostActive = false
+        dailyBopBoostSecondsLeft = 0
+        dailyBopTimerJob?.cancel()
+        dailyBopTimerJob = null
+        audio.stopDailyBopAnthem()
+        if (resetFound) dailyBopFoundThisRound = false
+        if (chainPowerUpActive && !gamePaused && gameActive) {
+            startPowerUpCountdown(audioDelayMs = 200)
+        }
+    }
+
+    private fun recordDailyBopFound(language: DictionaryLanguage) {
+        val dateKey = dailyBopDateKey()
+        val stats = bestGame.dailyBopLanguageStats.toMutableList()
+        val index = stats.indexOfFirst { it.language == language }
+        if (index >= 0) {
+            val stat = stats[index].copy()
+            if (stat.lastFoundDateKey == dateKey) return
+            stat.foundCount += 1
+            stat.lastFoundDateKey = dateKey
+            stats[index] = stat
+        } else {
+            stats.add(DailyBopLanguageStat(language = language, foundCount = 1, lastFoundDateKey = dateKey))
+        }
+        bestGame = bestGame.copy(dailyBopLanguageStats = stats)
+        saveBestGame()
+    }
+
+    private fun dailyBopDateKey(calendar: Calendar = Calendar.getInstance()): String {
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) + 1
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        return "%04d%02d%02d".format(year, month, day)
+    }
+
+    private fun dailyBopRank(count: Int): String {
+        val ranks = listOf(
+            "WordBopper Newbie",
+            "Bubble Scout",
+            "Bop Cadet",
+            "Word Wrangler",
+            "Bopologist",
+            "Bubble Captain",
+            "Grid Maestro",
+            "Daily Bop Dynamo",
+            "Word Wizard",
+            "Bop Commander",
+            "Letter Legend",
+            "Bop Supreme",
+            "Vocabulary Virtuoso",
+            "Daily Bop Champion",
+            "Grand Bopmaster"
+        )
+        return ranks[min(count / 10, ranks.lastIndex)]
+    }
+
     // MARK: - Bubble management
 
     private fun replaceBubble(id: UUID) {
@@ -786,7 +1038,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         largestLetterChain = prefs.getInt("bg_largestLetterChain", 0),
         largestBoppleLetterChain = prefs.getInt("bg_largestBoppleLetterChain", 0),
         largestNonStopLetterChain = prefs.getInt("bg_largestNonStopLetterChain", 0),
-        languageModeBestGames = loadLanguageModeBestGames()
+        languageModeBestGames = loadLanguageModeBestGames(),
+        dailyBopLanguageStats = loadDailyBopLanguageStats()
     )
 
     private fun saveBestGame() {
@@ -804,6 +1057,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             putInt("bg_largestBoppleLetterChain", bestGame.largestBoppleLetterChain)
             putInt("bg_largestNonStopLetterChain", bestGame.largestNonStopLetterChain)
             putString("bg_languageModeBestGames", encodeLanguageModeBestGames(bestGame.languageModeBestGames))
+            putString("bg_dailyBopLanguageStats", encodeDailyBopLanguageStats(bestGame.dailyBopLanguageStats))
         }.apply()
     }
 
@@ -924,6 +1178,42 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         return array.toString()
     }
 
+    private fun loadDailyBopLanguageStats(): List<DailyBopLanguageStat> {
+        val json = prefs.getString("bg_dailyBopLanguageStats", null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(json)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val languageName = item.optString("language")
+                    val language = DictionaryLanguage.entries.find { it.name == languageName } ?: continue
+                    val foundCount = item.optInt("foundCount")
+                    if (foundCount <= 0) continue
+                    add(
+                        DailyBopLanguageStat(
+                            language = language,
+                            foundCount = foundCount,
+                            lastFoundDateKey = item.optString("lastFoundDateKey")
+                        )
+                    )
+                }
+            }
+        }.getOrElse { emptyList() }
+    }
+
+    private fun encodeDailyBopLanguageStats(records: List<DailyBopLanguageStat>): String {
+        val array = JSONArray()
+        records.forEach { record ->
+            array.put(
+                JSONObject()
+                    .put("language", record.language.name)
+                    .put("foundCount", record.foundCount)
+                    .put("lastFoundDateKey", record.lastFoundDateKey)
+            )
+        }
+        return array.toString()
+    }
+
     private fun loadGameMode(): GameMode {
         val saved = prefs.getString("wordBopGameMode", null)
         return GameMode.entries.find { it.name == saved } ?: GameMode.TIMED
@@ -978,11 +1268,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun loadDailyBopEnabledLanguages(fallback: DictionaryLanguage): List<DictionaryLanguage> {
+        val saved = prefs.getString("wordBopDailyBopEnabledLanguages", null)
+            ?: return sortedDailyBopLanguages(listOf(DictionaryLanguage.ENGLISH, fallback))
+        val languages = saved
+            .split(",")
+            .mapNotNull { value -> DictionaryLanguage.entries.find { it.name == value } }
+        return sortedDailyBopLanguages(languages.ifEmpty { listOf(fallback) })
+    }
+
+    private fun saveDailyBopEnabledLanguages() {
+        prefs.edit()
+            .putString("wordBopDailyBopEnabledLanguages", dailyBopEnabledLanguages.joinToString(",") { it.name })
+            .apply()
+    }
+
     override fun onCleared() {
         super.onCleared()
         audio.release()
         haptics.cancel()
         stopTimer()
         stopPowerUpTimer()
+        stopDailyBopBoost(resetFound = false)
     }
 }

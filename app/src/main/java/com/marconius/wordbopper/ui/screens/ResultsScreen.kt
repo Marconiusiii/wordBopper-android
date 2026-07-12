@@ -1,5 +1,8 @@
 package com.marconius.wordbopper.ui.screens
 
+import android.app.SearchManager
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -49,6 +53,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 
 @Composable
@@ -117,6 +122,10 @@ fun ResultsScreen(vm: GameViewModel) {
             ) {
                 ResultStat(averageLength(vm), "Average length", WbAccent1, Modifier.weight(1f))
                 ResultStat(longestWord(vm), "Longest word", WbAccent3, Modifier.weight(1f))
+            }
+
+            if (vm.dailyBopFoundThisRound && !vm.dailyBopTargetWord.isNullOrBlank()) {
+                DailyBopResultButton(word = vm.dailyBopTargetWord.orEmpty())
             }
 
             Column(
@@ -197,6 +206,61 @@ private fun ResultsActionBar(vm: GameViewModel) {
             modifier = Modifier.weight(1f)
         ) { vm.goHome() }
     }
+}
+
+@Composable
+private fun DailyBopResultButton(word: String) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(WbSurface)
+            .border(1.dp, WbAccent5.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
+            .clickable {
+                openDefinitionSearch(context, word)
+            }
+            .clearAndSetSemantics {
+                contentDescription = "Daily Bop word bopped: $word. Look up definition."
+                role = Role.Button
+                onClick(label = "Look up definition") {
+                    openDefinitionSearch(context, word)
+                    true
+                }
+            }
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Daily Bop word bopped",
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbMuted,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = word,
+            fontSize = 22.sp,
+            lineHeight = 28.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = FontFamily.Monospace,
+            color = WbAccent5,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+private fun openDefinitionSearch(context: android.content.Context, word: String) {
+    val query = "define $word"
+    val searchIntent = Intent(Intent.ACTION_WEB_SEARCH)
+        .putExtra(SearchManager.QUERY, query)
+    val intent = if (searchIntent.resolveActivity(context.packageManager) != null) {
+        searchIntent
+    } else {
+        Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(query)}"))
+    }
+    runCatching { context.startActivity(intent) }
 }
 
 @Composable

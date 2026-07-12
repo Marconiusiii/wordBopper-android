@@ -74,6 +74,8 @@ import com.marconius.wordbopper.model.BestGame
 import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
+import com.marconius.wordbopper.model.DailyBopEntry
+import com.marconius.wordbopper.model.DailyBopLanguageStat
 import com.marconius.wordbopper.model.DictionaryLanguage
 import com.marconius.wordbopper.model.GameAnnouncementVerbosity
 import com.marconius.wordbopper.model.GameMode
@@ -98,6 +100,7 @@ fun StartScreen(vm: GameViewModel) {
     val headingFocusRequester = remember { FocusRequester() }
     var showInstructions by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showDailyBop by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         headingFocusRequester.requestFocus()
@@ -155,9 +158,21 @@ fun StartScreen(vm: GameViewModel) {
 
         StartGameButton(onClick = { vm.startGame() })
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        DailyBopButton(onClick = {
+            vm.prepareDailyBopEntries()
+            showDailyBop = true
+        })
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        BestGameCard(bestGame = vm.bestGame)
+        BestGameCard(
+            bestGame = vm.bestGame,
+            dailyBopRank = vm.currentDailyBopRank,
+            totalDailyBopsFound = vm.totalDailyBopsFound,
+            dailyBopStats = vm.dailyBopStats
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -181,6 +196,20 @@ fun StartScreen(vm: GameViewModel) {
             dragHandle = null
         ) {
             GameSettingsSheetContent(vm = vm, onDismiss = { showSettings = false })
+        }
+    }
+
+    if (showDailyBop) {
+        ModalBottomSheet(
+            onDismissRequest = { showDailyBop = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            DailyBopSheetContent(
+                vm = vm,
+                onDismiss = { showDailyBop = false }
+            )
         }
     }
 }
@@ -211,6 +240,32 @@ private fun StartGameButton(onClick: () -> Unit) {
 }
 
 @Composable
+private fun DailyBopButton(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 68.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(WbPanel)
+            .border(1.dp, WbAccent5.copy(alpha = 0.45f), RoundedCornerShape(18.dp))
+            .clickable(onClickLabel = "Daily Bop", onClick = onClick)
+            .semantics { role = Role.Button },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Daily Bop",
+            fontSize = 20.sp,
+            lineHeight = 24.sp,
+            fontWeight = FontWeight.Black,
+            color = WbAccent5,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+    }
+}
+
+@Composable
 private fun TextLinkButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(
         modifier = modifier
@@ -232,7 +287,133 @@ private fun TextLinkButton(text: String, modifier: Modifier = Modifier, onClick:
 }
 
 @Composable
-private fun BestGameCard(bestGame: BestGame) {
+private fun DailyBopSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) {
+        vm.prepareDailyBopEntries()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Daily Bop",
+            fontSize = 24.sp,
+            lineHeight = 30.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier.semantics { heading() }
+        )
+        Text(
+            text = "Find one special word each day in any language. Bop it during a Timed game to kick off a 45-second 3x boost.",
+            fontSize = 15.sp,
+            lineHeight = 20.sp,
+            color = WbText
+        )
+
+        if (vm.dailyBopEntriesReady) {
+            vm.dailyBopEntries.forEach { entry ->
+                DailyBopEntryButton(
+                    entry = entry,
+                    foundToday = vm.dailyBopWasFoundToday(entry.language),
+                    onClick = {
+                        onDismiss()
+                        vm.startGame(entry)
+                    }
+                )
+            }
+        } else {
+            Text(
+                text = "Loading Daily Bops...",
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = WbAccent5,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .clearAndSetSemantics { contentDescription = "Loading Daily Bops..." }
+                    .padding(vertical = 18.dp)
+            )
+        }
+
+        TextLinkButton(text = "Close", modifier = Modifier.fillMaxWidth(), onClick = onDismiss)
+    }
+}
+
+@Composable
+private fun DailyBopEntryButton(entry: DailyBopEntry, foundToday: Boolean, onClick: () -> Unit) {
+    val label = buildString {
+        append(entry.language.label)
+        append(", ")
+        append(entry.word)
+        if (foundToday) append(", found today")
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(WbSurface)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = label
+                role = Role.Button
+                onClick(label = "Start ${entry.language.label} Daily Bop") {
+                    onClick()
+                    true
+                }
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = entry.language.label,
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbText,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = entry.word,
+            fontSize = 18.sp,
+            lineHeight = 22.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = FontFamily.Monospace,
+            color = WbAccent5,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
+        )
+        if (foundToday) {
+            Text(
+                text = "Found",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.Black,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(WbAccent1)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BestGameCard(
+    bestGame: BestGame,
+    dailyBopRank: String,
+    totalDailyBopsFound: Int,
+    dailyBopStats: List<DailyBopLanguageStat>
+) {
     var isExpanded by remember { mutableStateOf(true) }
 
     Column(
@@ -315,8 +496,34 @@ private fun BestGameCard(bestGame: BestGame) {
                     .forEach { record ->
                         LanguageModeBestGameSection(record)
                     }
+                DailyBopBestGameSection(
+                    rank = dailyBopRank,
+                    totalFound = totalDailyBopsFound,
+                    stats = dailyBopStats
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun DailyBopBestGameSection(
+    rank: String,
+    totalFound: Int,
+    stats: List<DailyBopLanguageStat>
+) {
+    BestGameSection(
+        title = "Daily Bop",
+        stats = listOf(
+            Pair("Rank", rank),
+            Pair("Daily Bops found", "$totalFound")
+        )
+    )
+    stats.forEach { stat ->
+        BestGameSection(
+            title = "${stat.language.label} Daily Bop",
+            stats = listOf(Pair("Found", "${stat.foundCount}"))
+        )
     }
 }
 
@@ -624,6 +831,19 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
             }
         }
         item { SettingsDescription("Controls spoken game announcements for scoring, invalid words, and cleared letters.") }
+
+        item { SettingsSectionLabel("Daily Bop Languages") }
+
+        DictionaryLanguage.entries.forEach { language ->
+            item {
+                SettingsToggleRow(
+                    title = language.label,
+                    checked = vm.isDailyBopLanguageEnabled(language),
+                    onCheckedChange = { vm.setDailyBopLanguage(language, it) }
+                )
+            }
+        }
+        item { SettingsDescription("Choose which languages get a Daily Bop word each day. At least one language stays on.") }
 
         item { SettingsSectionLabel("Left-Handed Mode") }
 

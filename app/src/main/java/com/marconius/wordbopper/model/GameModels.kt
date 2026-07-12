@@ -30,7 +30,8 @@ data class BestGame(
     var largestLetterChain: Int = 0,
     var largestBoppleLetterChain: Int = 0,
     var largestNonStopLetterChain: Int = 0,
-    var languageModeBestGames: List<LanguageModeBestGame> = emptyList()
+    var languageModeBestGames: List<LanguageModeBestGame> = emptyList(),
+    var dailyBopLanguageStats: List<DailyBopLanguageStat> = emptyList()
 )
 
 data class LanguageModeBestGame(
@@ -43,4 +44,19 @@ data class LanguageModeBestGame(
 ) {
     val id: String get() = "${language.name}-${mode.name}"
     val heading: String get() = "${language.label} ${mode.label} Mode"
+}
+
+data class DailyBopLanguageStat(
+    var language: DictionaryLanguage,
+    var foundCount: Int = 0,
+    var lastFoundDateKey: String = ""
+) {
+    val id: String get() = language.name
+}
+
+data class DailyBopEntry(
+    val language: DictionaryLanguage,
+    val word: String
+) {
+    val id: String get() = "${language.name}-$word"
 }

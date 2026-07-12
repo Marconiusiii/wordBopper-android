@@ -35,7 +35,12 @@ class AudioEngine(
     private val sampleRate = 44100
     private var selectNoteIndex = 0
     private var powerUpJob: Job? = null
+    private var dailyBopAnthemJob: Job? = null
+    private var dailyBopPrepareJob: Job? = null
+    @Volatile private var dailyBopAnthemSamples: FloatArray? = null
+    @Volatile private var shouldPlayDailyBopAnthemWhenReady = false
     private val activeTracks = CopyOnWriteArrayList<AudioTrack>()
+    private val dailyBopTracks = CopyOnWriteArrayList<AudioTrack>()
     private val audioManager = context.getSystemService(AudioManager::class.java)
     @Volatile private var masterVolume = 0.82f
 
@@ -271,6 +276,136 @@ class AudioEngine(
         play(ctx.toFloatArray())
     }
 
+    fun prepareDailyBopAnthemPreview() {
+        prepareDailyBopAnthem(playWhenReady = false)
+    }
+
+    fun playDailyBopAnthem() {
+        dailyBopAnthemSamples?.let {
+            playDailyBopSamples(it)
+            return
+        }
+        prepareDailyBopAnthem(playWhenReady = true)
+    }
+
+    fun stopDailyBopAnthem() {
+        shouldPlayDailyBopAnthemWhenReady = false
+        dailyBopAnthemJob?.cancel()
+        dailyBopAnthemJob = null
+        for (track in dailyBopTracks) {
+            try { track.stop(); track.release() } catch (_: Exception) {}
+            activeTracks.remove(track)
+        }
+        dailyBopTracks.clear()
+    }
+
+    private fun prepareDailyBopAnthem(playWhenReady: Boolean) {
+        if (dailyBopAnthemSamples != null) {
+            if (playWhenReady) playDailyBopAnthem()
+            return
+        }
+        shouldPlayDailyBopAnthemWhenReady = shouldPlayDailyBopAnthemWhenReady || playWhenReady
+        if (dailyBopPrepareJob?.isActive == true) return
+        dailyBopPrepareJob = scope.launch(Dispatchers.IO) {
+            val samples = makeDailyBopAnthemSamples()
+            dailyBopAnthemSamples = samples
+            if (shouldPlayDailyBopAnthemWhenReady) {
+                shouldPlayDailyBopAnthemWhenReady = false
+                playDailyBopSamples(samples)
+            }
+        }
+    }
+
+    private fun makeDailyBopAnthemSamples(): FloatArray {
+        val trebleBars = listOf(
+            listOf(783.99, 880.00, 1046.50, 880.00),
+            listOf(783.99, 880.00, 659.25, 783.99),
+            listOf(880.00, 783.99, 1046.50, 880.00),
+            listOf(1318.51, 1174.66, 1046.50, 880.00),
+            listOf(783.99, 880.00, 1046.50, 880.00),
+            listOf(783.99, 880.00, 659.25, 783.99),
+            listOf(880.00, 783.99, 1046.50, 880.00),
+            listOf(659.25, 783.99, 587.33, 523.25),
+            listOf(783.99, 880.00, 1046.50, 880.00),
+            listOf(783.99, 880.00, 659.25, 783.99),
+            listOf(880.00, 783.99, 1046.50, 880.00),
+            listOf(1318.51, 1174.66, 1046.50, 880.00),
+            listOf(783.99, 880.00, 1046.50, 880.00),
+            listOf(783.99, 880.00, 659.25, 783.99),
+            listOf(880.00, 783.99, 1046.50, 880.00),
+            listOf(659.25, 783.99, 587.33, 523.25)
+        )
+        val bassProgression = listOf(783.99, 523.25, 659.25, 739.99)
+        val lowBassProgression = listOf(130.81, 164.81, 130.81, 146.83)
+        val barDuration = 0.9
+        val duration = 45.0
+        val finishStart = 43.2
+        val ctx = SynthContext(duration, sampleRate)
+
+        for (loop in 0 until 3) {
+            val transpose = 2.0.pow((loop * 2).toDouble() / 12.0)
+            for (bar in 0 until 16) {
+                val barStart = (loop * 16 + bar) * barDuration
+                if (barStart + barDuration > finishStart + 0.0001) continue
+                val bassNote = bassProgression[bar % bassProgression.size]
+                val lowBassNote = lowBassProgression[bar % lowBassProgression.size]
+                val treble = trebleBars[bar]
+
+                ctx.addOsc(OscType.SINE, bassNote * 0.5 * transpose, barStart, 0.018, 0.058, 0.88, 0.42, 0.16)
+                ctx.addOsc(OscType.SINE, lowBassNote * transpose, barStart, 0.02, 0.032, 0.9, 0.45, 0.18)
+
+                val starts = listOf(0.12, 0.34, 0.58, 0.82)
+                for ((index, freq) in treble.withIndex()) {
+                    val emphasized = index == 2
+                    ctx.addOsc(
+                        OscType.SINE,
+                        freq * transpose,
+                        barStart + starts[index],
+                        0.014,
+                        if (emphasized) 0.046 else 0.036,
+                        if (emphasized) 0.34 else 0.28
+                    )
+                }
+            }
+        }
+
+        val finishNotes = listOf(493.88, 659.25, 830.61, 987.77, 1318.51)
+        for ((index, freq) in finishNotes.withIndex()) {
+            val start = finishStart + index * 0.16
+            ctx.addOsc(OscType.SINE, freq, start, 0.018, if (index == finishNotes.lastIndex) 0.075 else 0.052, 1.05, 0.44, 0.14)
+            ctx.addOsc(OscType.TRIANGLE, freq * 2, start + 0.012, 0.012, 0.012, 0.72, 0.34, 0.12)
+        }
+        return ctx.toFloatArray()
+    }
+
+    private fun playDailyBopSamples(samples: FloatArray) {
+        stopDailyBopAnthem()
+        dailyBopAnthemJob = scope.launch(Dispatchers.IO) {
+            try {
+                val shorts = samples.toShortArray()
+                val minBuf = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+                val track = AudioTrack.Builder()
+                    .setAudioAttributes(audioAttributes)
+                    .setAudioFormat(audioFormat)
+                    .setBufferSizeInBytes(max(shorts.size * 2, minBuf))
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build()
+                preferredOutputDevice()?.let { track.setPreferredDevice(it) }
+                activeTracks.add(track)
+                dailyBopTracks.add(track)
+                track.write(shorts, 0, shorts.size, AudioTrack.WRITE_BLOCKING)
+                track.play()
+                delay((shorts.size.toLong() * 1000L / sampleRate) + 80L)
+                track.stop()
+                track.release()
+                dailyBopTracks.remove(track)
+                activeTracks.remove(track)
+            } catch (exception: Exception) {
+                Log.w(TAG, "Unable to play Daily Bop anthem", exception)
+            }
+        }
+    }
+
     fun playRoundEndSound() {
         val chordTones = listOf(261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98)
         var idx = (0..4).random()
@@ -326,6 +461,9 @@ class AudioEngine(
 
     fun release() {
         stopPowerUpChimes()
+        stopDailyBopAnthem()
+        dailyBopPrepareJob?.cancel()
+        dailyBopPrepareJob = null
         for (track in activeTracks) {
             try { track.stop(); track.release() } catch (_: Exception) {}
         }

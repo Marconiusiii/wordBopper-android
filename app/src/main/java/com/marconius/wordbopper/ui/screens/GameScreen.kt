@@ -259,8 +259,8 @@ private fun PortraitLayout(vm: GameViewModel, selectedIds: Set<UUID>) {
         if (vm.gameMode != com.marconius.wordbopper.model.GameMode.BOPPLE) {
             ChainMeter(
                 connectedWordStreak = vm.connectedWordStreak,
-                chainPowerUpActive = vm.chainPowerUpActive,
-                chainPowerUpSecondsLeft = vm.chainPowerUpSecondsLeft,
+                chainPowerUpActive = vm.dailyBopBoostActive || vm.chainPowerUpActive,
+                chainPowerUpSecondsLeft = if (vm.dailyBopBoostActive) vm.dailyBopBoostSecondsLeft else vm.chainPowerUpSecondsLeft,
                 chainMeterProgress = vm.chainMeterProgress,
                 chainMeterValue = vm.chainMeterValue
             )
@@ -530,8 +530,8 @@ private fun LandscapeControlPanel(vm: GameViewModel, modifier: Modifier = Modifi
         if (vm.gameMode != com.marconius.wordbopper.model.GameMode.BOPPLE) {
             ChainMeter(
                 connectedWordStreak = vm.connectedWordStreak,
-                chainPowerUpActive = vm.chainPowerUpActive,
-                chainPowerUpSecondsLeft = vm.chainPowerUpSecondsLeft,
+                chainPowerUpActive = vm.dailyBopBoostActive || vm.chainPowerUpActive,
+                chainPowerUpSecondsLeft = if (vm.dailyBopBoostActive) vm.dailyBopBoostSecondsLeft else vm.chainPowerUpSecondsLeft,
                 chainMeterProgress = vm.chainMeterProgress,
                 chainMeterValue = vm.chainMeterValue
             )

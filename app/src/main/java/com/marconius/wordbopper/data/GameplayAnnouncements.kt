@@ -17,14 +17,17 @@ object GameplayAnnouncements {
         chainBonus: Int,
         multiplier: Int,
         powerUpActivated: Boolean,
-        verbosity: GameAnnouncementVerbosity
+        verbosity: GameAnnouncementVerbosity,
+        dailyBopActivated: Boolean = false
     ): String {
         val pointText = if (points == 1) "1 point" else "$points points"
 
         if (verbosity == GameAnnouncementVerbosity.LOW) {
+            if (dailyBopActivated) return "Daily Bop found! 3 times boost active!"
             return if (powerUpActivated) "3 times active!" else "$pointText."
         }
 
+        if (dailyBopActivated) return "$word, Daily Bop found! 3 times boost active!"
         if (powerUpActivated) return "3 times active!"
 
         val parts = mutableListOf("$word, $pointText")

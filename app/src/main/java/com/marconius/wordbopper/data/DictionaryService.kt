@@ -3,12 +3,14 @@ package com.marconius.wordbopper.data
 import android.content.Context
 import com.marconius.wordbopper.model.DictionaryLanguage
 import java.text.Normalizer
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Calendar
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 class DictionaryService private constructor(context: Context) {
     private val resources = context.resources
     private val wordsByLanguage = ConcurrentHashMap<DictionaryLanguage, Set<String>>()
+    private val dailyWords = ConcurrentHashMap<String, String>()
     private val locales = DictionaryLanguage.entries.associateWith { language ->
         Locale.forLanguageTag(language.speechLanguage)
     }
@@ -29,6 +31,19 @@ class DictionaryService private constructor(context: Context) {
 
     fun isLoaded(language: DictionaryLanguage): Boolean {
         return wordsByLanguage.containsKey(language)
+    }
+
+    fun dailyWord(language: DictionaryLanguage, calendar: Calendar = Calendar.getInstance()): String {
+        val dateKey = dailyDateKey(calendar)
+        val cacheKey = "${language.name}-$dateKey"
+        dailyWords[cacheKey]?.let { return it }
+        val word = words(language)
+            .asSequence()
+            .filter { it.length in 6..10 && it.all { character -> character.isLetter() } }
+            .minByOrNull { stableSeed("${language.dailySeedName()}-$dateKey-$it") }
+            .orEmpty()
+        dailyWords[cacheKey] = word
+        return word
     }
 
     private fun words(language: DictionaryLanguage): Set<String> {
@@ -64,6 +79,32 @@ class DictionaryService private constructor(context: Context) {
                 .replace(token, character)
         }
         return normalizedWord
+    }
+
+    private fun dailyDateKey(calendar: Calendar): String {
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) + 1
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        return "%04d%02d%02d".format(year, month, day)
+    }
+
+    private fun stableSeed(string: String): Long {
+        var hash = -3750763034362895579L
+        for (byte in string.toByteArray(Charsets.UTF_8)) {
+            hash = hash xor (byte.toLong() and 0xffL)
+            hash *= 1099511628211L
+        }
+        return hash and Long.MAX_VALUE
+    }
+
+    private fun DictionaryLanguage.dailySeedName(): String = when (this) {
+        DictionaryLanguage.ENGLISH -> "english"
+        DictionaryLanguage.SPANISH -> "spanish"
+        DictionaryLanguage.FRENCH -> "french"
+        DictionaryLanguage.GERMAN -> "german"
+        DictionaryLanguage.DUTCH -> "dutch"
+        DictionaryLanguage.ITALIAN -> "italian"
+        DictionaryLanguage.BRAZILIAN_PORTUGUESE -> "brazilianPortuguese"
     }
 
     companion object {
