@@ -603,6 +603,14 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         "3 or 4 letter words score 1 point, 5 letters score 2, 6 letters score 3, 7 letters score 5, and 8 or more letters score 11.",
         "Play together with friends at the same time to see who can Bopple the best! All on their own devices, of course."
     )
+    val dailyBopInstructions = listOf(
+        "Daily Bop gives each selected language one special word from midnight to 11:59 PM in your local time zone.",
+        "Open Daily Bop from the home screen, then choose a Daily Bop word to start a Timed game in that language.",
+        "Find the Daily Bop word during the round to launch a 45-second 3x boost.",
+        "Each Daily Bop word can add to your stats once per language per day.",
+        "Your Daily Bop rank increases as your total Daily Bops found goes up.",
+        "After you bop the Daily Bop word, the Round Complete screen shows it as a button that can open a definition search."
+    )
 
     LazyColumn(
         modifier = Modifier
@@ -643,6 +651,24 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         }
 
         boppleInstructions.forEach { instruction ->
+            item { InstructionRow(instruction) }
+        }
+
+        item {
+            Text(
+                text = "Daily Bop",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .semantics { heading() }
+            )
+        }
+
+        dailyBopInstructions.forEach { instruction ->
             item { InstructionRow(instruction) }
         }
     }

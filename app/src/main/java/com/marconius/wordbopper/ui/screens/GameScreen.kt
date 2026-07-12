@@ -5,6 +5,7 @@ import android.net.Uri
 import java.util.UUID
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -144,6 +145,13 @@ private fun GamePauseCover(vm: GameViewModel) {
                 }
         )
 
+        if (!vm.dailyBopTargetWord.isNullOrBlank() && vm.dailyBopTargetLanguage != null) {
+            DailyBopPauseTarget(
+                word = vm.dailyBopTargetWord.orEmpty(),
+                language = vm.dailyBopTargetLanguage!!.label
+            )
+        }
+
         PauseActionButton(
             title = "Resume Game",
             textColor = Color.Black,
@@ -163,6 +171,42 @@ private fun GamePauseCover(vm: GameViewModel) {
             textColor = WbText,
             background = Brush.linearGradient(listOf(WbPanel, WbPanel)),
             onClick = { reportMissingWord(context, vm) }
+        )
+    }
+}
+
+@Composable
+private fun DailyBopPauseTarget(word: String, language: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 76.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(WbSurface)
+            .border(1.dp, WbAccent5.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+            .clearAndSetSemantics {
+                contentDescription = "Daily Bop word, $language, $word"
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Daily Bop",
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbMuted,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "$language: $word",
+            fontSize = 18.sp,
+            lineHeight = 22.sp,
+            fontWeight = FontWeight.Black,
+            color = WbAccent5,
+            textAlign = TextAlign.Center
         )
     }
 }
