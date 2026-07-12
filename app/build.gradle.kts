@@ -30,8 +30,8 @@ android {
         applicationId = "com.marconius.WordBopper"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.4.2"
+        versionCode = 10
+        versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

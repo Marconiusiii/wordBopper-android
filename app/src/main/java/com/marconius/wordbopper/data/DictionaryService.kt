@@ -88,13 +88,13 @@ class DictionaryService private constructor(context: Context) {
         return "%04d%02d%02d".format(year, month, day)
     }
 
-    private fun stableSeed(string: String): Long {
-        var hash = -3750763034362895579L
+    private fun stableSeed(string: String): ULong {
+        var hash = 14_695_981_039_346_656_037UL
         for (byte in string.toByteArray(Charsets.UTF_8)) {
-            hash = hash xor (byte.toLong() and 0xffL)
-            hash *= 1099511628211L
+            hash = hash xor byte.toUByte().toULong()
+            hash *= 1_099_511_628_211UL
         }
-        return hash and Long.MAX_VALUE
+        return hash % Long.MAX_VALUE.toULong()
     }
 
     private fun DictionaryLanguage.dailySeedName(): String = when (this) {

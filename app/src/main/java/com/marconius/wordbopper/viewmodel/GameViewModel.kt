@@ -167,6 +167,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var powerUpTimerJob: Job? = null
     private var dailyBopTimerJob: Job? = null
     private var dailyBopEntriesJob: Job? = null
+    private var dailyBopEntriesDateKey: String? = null
     private var startGameJob: Job? = null
     private val consumedBopAwayBubbleIds = mutableSetOf<UUID>()
 
@@ -780,10 +781,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // MARK: - Daily Bop
 
     fun prepareDailyBopEntries() {
-        if (dailyBopEntriesReady || dailyBopEntriesLoading) return
+        val dateKey = dailyBopDateKey()
+        if (dailyBopEntriesReady && dailyBopEntriesDateKey == dateKey) return
+        if (dailyBopEntriesLoading && dailyBopEntriesDateKey == dateKey) return
         val languages = normalizedDailyBopLanguages()
-        dailyBopEntriesLoading = true
         dailyBopEntriesJob?.cancel()
+        dailyBopEntriesReady = false
+        dailyBopEntriesLoading = true
+        dailyBopEntriesDateKey = dateKey
         dailyBopEntriesJob = viewModelScope.launch {
             val entries = withContext(Dispatchers.IO) {
                 languages.mapNotNull { language ->
@@ -809,6 +814,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         dailyBopEntries = emptyList()
         dailyBopEntriesReady = false
         dailyBopEntriesLoading = false
+        dailyBopEntriesDateKey = null
         prepareDailyBopEntries()
     }
 
