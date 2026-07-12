@@ -177,36 +177,28 @@ private fun GamePauseCover(vm: GameViewModel) {
 
 @Composable
 private fun DailyBopPauseTarget(word: String, language: String) {
+    val targetText = "Daily Bop word: $language, $word"
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 76.dp)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(WbSurface)
-            .border(1.dp, WbAccent5.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-            .clearAndSetSemantics {
-                contentDescription = "Daily Bop word, $language, $word"
-            }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Daily Bop",
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = WbMuted,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "$language: $word",
+            text = targetText,
             fontSize = 18.sp,
             lineHeight = 22.sp,
             fontWeight = FontWeight.Black,
             color = WbAccent5,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(WbSurface)
+                .border(1.dp, WbAccent5.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                .padding(horizontal = 16.dp, vertical = 18.dp)
         )
     }
 }
