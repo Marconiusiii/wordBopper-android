@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 class DictionaryService private constructor(context: Context) {
     private val resources = context.resources
     private val wordsByLanguage = ConcurrentHashMap<DictionaryLanguage, Set<String>>()
+    private val dailyCandidatesByLanguage = ConcurrentHashMap<DictionaryLanguage, List<String>>()
     private val dailyWords = ConcurrentHashMap<String, String>()
     private val locales = DictionaryLanguage.entries.associateWith { language ->
         Locale.forLanguageTag(language.speechLanguage)
@@ -33,17 +34,26 @@ class DictionaryService private constructor(context: Context) {
         return wordsByLanguage.containsKey(language)
     }
 
+    fun preloadDailyBopCandidates(language: DictionaryLanguage) {
+        dailyCandidates(language)
+    }
+
     fun dailyWord(language: DictionaryLanguage, calendar: Calendar = Calendar.getInstance()): String {
         val dateKey = dailyDateKey(calendar)
         val cacheKey = "${language.name}-$dateKey"
         dailyWords[cacheKey]?.let { return it }
-        val word = words(language)
-            .asSequence()
-            .filter { it.length in 6..10 && it.all { character -> character.isLetter() } }
+        val word = dailyCandidates(language)
             .minByOrNull { stableSeed("${language.dailySeedName()}-$dateKey-$it") }
             .orEmpty()
         dailyWords[cacheKey] = word
         return word
+    }
+
+    private fun dailyCandidates(language: DictionaryLanguage): List<String> {
+        dailyCandidatesByLanguage[language]?.let { return it }
+        val candidates = words(language)
+            .filter { it.length in 6..10 && it.all { character -> character.isLetter() } }
+        return dailyCandidatesByLanguage.putIfAbsent(language, candidates) ?: candidates
     }
 
     private fun words(language: DictionaryLanguage): Set<String> {

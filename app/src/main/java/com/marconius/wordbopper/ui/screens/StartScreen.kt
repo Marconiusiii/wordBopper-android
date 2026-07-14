@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -288,8 +289,19 @@ private fun TextLinkButton(text: String, modifier: Modifier = Modifier, onClick:
 
 @Composable
 private fun DailyBopSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
+    val firstEntryFocusRequester = remember { FocusRequester() }
+    var showedLoadingState by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
+        if (!vm.dailyBopEntriesReady) showedLoadingState = true
         vm.prepareDailyBopEntries()
+    }
+
+    LaunchedEffect(vm.dailyBopEntriesReady, vm.dailyBopEntries) {
+        if (vm.dailyBopEntriesReady && showedLoadingState && vm.dailyBopEntries.isNotEmpty()) {
+            firstEntryFocusRequester.requestFocus()
+            showedLoadingState = false
+        }
     }
 
     Column(
@@ -316,10 +328,11 @@ private fun DailyBopSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
         )
 
         if (vm.dailyBopEntriesReady) {
-            vm.dailyBopEntries.forEach { entry ->
+            vm.dailyBopEntries.forEachIndexed { index, entry ->
                 DailyBopEntryButton(
                     entry = entry,
                     foundToday = vm.dailyBopWasFoundToday(entry.language),
+                    modifier = if (index == 0) Modifier.focusRequester(firstEntryFocusRequester) else Modifier,
                     onClick = {
                         onDismiss()
                         vm.startGame(entry)
@@ -327,18 +340,7 @@ private fun DailyBopSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
                 )
             }
         } else {
-            Text(
-                text = "Loading Daily Bops...",
-                fontSize = 16.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = WbAccent5,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 72.dp)
-                    .clearAndSetSemantics { contentDescription = "Loading Daily Bops..." }
-                    .padding(vertical = 18.dp)
-            )
+            DailyBopLoadingView()
         }
 
         TextLinkButton(text = "Close", modifier = Modifier.fillMaxWidth(), onClick = onDismiss)
@@ -346,7 +348,41 @@ private fun DailyBopSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun DailyBopEntryButton(entry: DailyBopEntry, foundToday: Boolean, onClick: () -> Unit) {
+private fun DailyBopLoadingView() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 88.dp)
+            .clearAndSetSemantics {
+                contentDescription = "Loading Daily Bops..."
+                progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
+            }
+            .padding(vertical = 18.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            color = WbAccent5,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.size(14.dp))
+        Text(
+            text = "Loading Daily Bops...",
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = WbAccent5
+        )
+    }
+}
+
+@Composable
+private fun DailyBopEntryButton(
+    entry: DailyBopEntry,
+    foundToday: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     val label = buildString {
         append(entry.language.label)
         append(", ")
@@ -354,7 +390,7 @@ private fun DailyBopEntryButton(entry: DailyBopEntry, foundToday: Boolean, onCli
         if (foundToday) append(", found today")
     }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .clip(RoundedCornerShape(14.dp))

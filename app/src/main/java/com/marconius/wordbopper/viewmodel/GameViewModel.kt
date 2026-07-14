@@ -260,6 +260,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 dictionary.preload(dictionaryLanguage)
+                preloadDailyBopCandidates()
                 audio.warmUp()
                 audio.prepareDailyBopAnthemPreview()
                 prebuildThrowawayRound()
@@ -278,6 +279,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 dictionary.preload(language)
+                preloadDailyBopCandidates()
                 audio.prepareDailyBopAnthemPreview()
             }
             prepareDailyBopEntries()
@@ -494,7 +496,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         screen = GameScreen.GAME
-        audio.playRoundStartSound(gameMode)
+        if (dailyBopEntry != null) audio.playDailyBopIntroSound()
+        else audio.playRoundStartSound(gameMode)
         if (showsTimer) startTimer()
     }
 
@@ -791,6 +794,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         dailyBopEntriesDateKey = dateKey
         dailyBopEntriesJob = viewModelScope.launch {
             val entries = withContext(Dispatchers.IO) {
+                preloadDailyBopCandidates(languages)
                 languages.mapNotNull { language ->
                     val word = dictionary.dailyWord(language)
                     if (word.isBlank()) null else DailyBopEntry(language, word)
@@ -816,6 +820,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         dailyBopEntriesLoading = false
         dailyBopEntriesDateKey = null
         prepareDailyBopEntries()
+    }
+
+    private fun preloadDailyBopCandidates(languages: List<DictionaryLanguage> = normalizedDailyBopLanguages()) {
+        languages.forEach { language ->
+            dictionary.preloadDailyBopCandidates(language)
+        }
     }
 
     private fun ensureDailyBopLanguageEnabled(language: DictionaryLanguage) {

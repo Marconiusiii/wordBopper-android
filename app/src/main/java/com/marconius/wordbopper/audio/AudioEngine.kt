@@ -203,6 +203,57 @@ class AudioEngine(
         playTimedRoundStartSound()
     }
 
+    fun playDailyBopIntroSound() {
+        val motif = listOf(783.99, 783.99, 587.33)
+        val harmony = listOf(392.0, 493.88, 392.0)
+        val starts = listOf(0.0, 0.22, 0.43)
+        val ctx = SynthContext(1.05, sampleRate)
+
+        for (index in motif.indices) {
+            val start = starts[index]
+            val freq = motif[index]
+            val landing = index == motif.lastIndex
+            ctx.addOsc(
+                OscType.SINE,
+                freq,
+                start,
+                0.018,
+                if (landing) 0.34 else 0.28,
+                if (landing) 0.58 else 0.32,
+                0.5,
+                0.09
+            )
+            ctx.addOsc(
+                OscType.TRIANGLE,
+                freq * 2,
+                start + 0.006,
+                0.012,
+                if (landing) 0.085 else 0.07,
+                if (landing) 0.44 else 0.26,
+                0.36,
+                0.07,
+                FilterSpec(FilterKind.BANDPASS, freq * 2, 5.5)
+            )
+            ctx.addOsc(
+                OscType.SINE,
+                harmony[index],
+                start + 0.012,
+                0.02,
+                if (landing) 0.13 else 0.09,
+                if (landing) 0.62 else 0.34,
+                0.42,
+                0.1
+            )
+        }
+
+        ctx.addOsc(OscType.SINE, 1174.66, 0.45, 0.006, 0.07, 0.28,
+            filter = FilterSpec(FilterKind.BANDPASS, 1174.66, 8.0))
+        ctx.addOsc(OscType.SINE, 1567.98, 0.5, 0.006, 0.055, 0.24,
+            filter = FilterSpec(FilterKind.BANDPASS, 1567.98, 8.0))
+        ctx.addNoise(0.42, 0.08, 0.08, highpass = false, bandpass = true)
+        play(ctx.toFloatArray())
+    }
+
     private fun playTimedRoundStartSound() {
         val chordNotes = listOf(261.63, 329.63, 392.00, 523.25, 659.25, 783.99)
         val shapes = listOf(intArrayOf(0,1,2,3), intArrayOf(2,1,3,0),
