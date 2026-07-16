@@ -1000,7 +1000,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun randomLetter(row: Int, col: Int, replacingId: UUID? = null): String {
         repeat(12) {
-            val candidate = dictionaryLanguage.letterPool.random()
+            val candidate = randomLetterCandidate()
             if (!hasAdjacentLetter(candidate, row, col, replacingId)) return candidate
         }
 
@@ -1013,10 +1013,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
             .map { it.letter }
             .toSet()
-        return dictionaryLanguage.letterPool
+        val fallbackPool = dictionaryLanguage.letterPool
             .filterNot { it in adjacentLetters }
             .ifEmpty { dictionaryLanguage.letterPool }
-            .random()
+        return randomDailyBopLetter()
+            ?.takeIf { it in fallbackPool && (0 until 100).random() < 16 }
+            ?: fallbackPool.random()
+    }
+
+    private fun randomLetterCandidate(): String {
+        val dailyBopLetter = randomDailyBopLetter()
+        if (dailyBopLetter != null && (0 until 100).random() < 16) {
+            return dailyBopLetter
+        }
+        return dictionaryLanguage.letterPool.random()
+    }
+
+    private fun randomDailyBopLetter(): String? {
+        val targetWord = dailyBopTargetWord ?: return null
+        if (dailyBopTargetLanguage != dictionaryLanguage) return null
+        val letters = targetWord.map { it.toString() }.filter { it.isNotBlank() }
+        return letters.randomOrNull()
     }
 
     private fun hasAdjacentLetter(letter: String, row: Int, col: Int, replacingId: UUID?): Boolean {
