@@ -61,6 +61,25 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             "The Boppler Effect", "Bopple Away!", "All the Bopples",
             "Boplift Your Vocabulary!", "The Bopple Exquisite", "The Bopple Bops Back"
         )
+
+        private val DAILY_BOP_GAMEPLAY_HEADINGS = listOf(
+            "Bop of the Day",
+            "Today's Word Wants You",
+            "Daily Bop, Daily Glory",
+            "The Word Is Out There",
+            "Hunt the Daily Bop",
+            "Bop It Before Midnight",
+            "Today's Bop Begins",
+            "Chase the Daily Bop",
+            "Bop the Day Away",
+            "The Daily Word Beckons",
+            "Find It, Bop It",
+            "Your Daily Bop Awaits",
+            "Bop on the Daily",
+            "A Good Day to Bop",
+            "Get the Big Bopper",
+            "Boppin' 24/7"
+        )
     }
 
     private val dictionary = DictionaryService.getInstance(application)
@@ -499,6 +518,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (dailyBopEntry != null) audio.playDailyBopIntroSound()
         else audio.playRoundStartSound(gameMode)
         if (showsTimer) startTimer()
+    }
+
+    fun playAgain() {
+        val targetWord = dailyBopTargetWord
+        val targetLanguage = dailyBopTargetLanguage
+        if (!targetWord.isNullOrBlank() && targetLanguage != null) {
+            startGame(DailyBopEntry(language = targetLanguage, word = targetWord))
+        } else {
+            startGame()
+        }
     }
 
     fun pauseGame(playSound: Boolean = true) {
@@ -1001,8 +1030,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun randomColor() = (0 until COLOR_COUNT).random()
-    private fun randomGameplayHeading() = if (gameMode == GameMode.BOPPLE)
-        BOPPLE_GAMEPLAY_HEADINGS.random() else GAMEPLAY_HEADINGS.random()
+    private fun randomGameplayHeading(): String {
+        if (dailyBopTargetWord != null) return DAILY_BOP_GAMEPLAY_HEADINGS.random()
+        if (gameMode == GameMode.BOPPLE) return BOPPLE_GAMEPLAY_HEADINGS.random()
+        return GAMEPLAY_HEADINGS.random()
+    }
 
     private val gameDuration: Int
         get() = when (gameMode) {

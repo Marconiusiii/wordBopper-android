@@ -196,7 +196,7 @@ private fun ResultsActionBar(vm: GameViewModel) {
             brush = Brush.linearGradient(listOf(WbAccent1, WbAccent2)),
             textColor = Color.Black,
             modifier = Modifier.weight(1f)
-        ) { vm.startGame() }
+        ) { vm.playAgain() }
 
         ActionButton(
             text = "Return Home",
