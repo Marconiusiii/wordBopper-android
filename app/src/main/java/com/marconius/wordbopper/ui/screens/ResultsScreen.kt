@@ -217,27 +217,17 @@ private fun DailyBopResultButton(word: String) {
             .clip(RoundedCornerShape(18.dp))
             .background(WbSurface)
             .border(1.dp, WbAccent5.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
-            .clickable {
-                openDefinitionSearch(context, word)
-            }
-            .clearAndSetSemantics {
-                contentDescription = "Daily Bop word bopped: $word. Look up definition."
-                role = Role.Button
-                onClick(label = "Look up definition") {
-                    openDefinitionSearch(context, word)
-                    true
-                }
-            }
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Daily Bop word bopped",
+            text = "Daily Bop Word Bopped!",
             fontSize = 14.sp,
             lineHeight = 18.sp,
             fontWeight = FontWeight.Bold,
             color = WbMuted,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() }
         )
         Text(
             text = word,
@@ -246,7 +236,21 @@ private fun DailyBopResultButton(word: String) {
             fontWeight = FontWeight.Black,
             fontFamily = FontFamily.Monospace,
             color = WbAccent5,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    openDefinitionSearch(context, word)
+                }
+                .clearAndSetSemantics {
+                    contentDescription = word
+                    role = Role.Button
+                    onClick(label = "Look up definition") {
+                        openDefinitionSearch(context, word)
+                        true
+                    }
+                }
+                .padding(vertical = 8.dp, horizontal = 12.dp)
         )
     }
 }
