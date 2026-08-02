@@ -1,5 +1,10 @@
 package com.marconius.wordbopper.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,8 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
@@ -1249,8 +1252,16 @@ private fun AboutSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
 
         AboutLinkRow(label = "Send Game Feedback") {
             val subject = Uri.encode("WordBopper Android Feedback")
+            val body = Uri.encode(
+                """
+                Feedback:
+
+                App Version: ${appVersionDisplay(context)}
+                Android OS: ${androidOsDisplay()}
+                """.trimIndent()
+            )
             context.startActivity(
-                Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject"))
+                Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:marco@marconius.com?subject=$subject&body=$body"))
             )
         }
 
@@ -1260,8 +1271,8 @@ private fun AboutSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
                 """
                 Missing word:
 
-                Bubble Language: ${vm.dictionaryLanguage.label}
-                Game Mode: ${vm.gameMode.label}
+                Language: ${vm.dictionaryLanguage.label}
+                App Version: ${appVersionDisplay(context)}
 
                 Please include the missing word above. If you know the language or regional spelling details, feel free to add those too.
                 """.trimIndent()
@@ -1554,6 +1565,30 @@ private val languageAcknowledgements = listOf(
         )
     )
 )
+
+internal fun appVersionDisplay(context: Context): String {
+    val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.packageManager.getPackageInfo(
+            context.packageName,
+            PackageManager.PackageInfoFlags.of(0)
+        )
+    } else {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0)
+    }
+    val versionName = packageInfo.versionName ?: "Unknown"
+    val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        packageInfo.longVersionCode
+    } else {
+        @Suppress("DEPRECATION")
+        packageInfo.versionCode.toLong()
+    }
+    return "$versionName ($versionCode)"
+}
+
+internal fun androidOsDisplay(): String {
+    return "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
+}
 
 @Composable
 private fun AboutLinkRow(label: String, onClick: () -> Unit) {

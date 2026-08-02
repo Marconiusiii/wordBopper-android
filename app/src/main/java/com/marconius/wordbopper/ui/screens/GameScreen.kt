@@ -246,8 +246,8 @@ private fun reportMissingWord(context: android.content.Context, vm: GameViewMode
         """
         Missing word:
 
-        Bubble Language: ${vm.dictionaryLanguage.label}
-        Game Mode: ${vm.gameMode.label}
+        Language: ${vm.dictionaryLanguage.label}
+        App Version: ${appVersionDisplay(context)}
 
         Please include the missing word above. If you know the language or regional spelling details, feel free to add those too.
         """.trimIndent()
