@@ -928,7 +928,7 @@ private fun GameSettingsSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
                 onCheckedChange = { vm.setGameHapticsEnabled(it) }
             )
         }
-        item { SettingsDescription("Adds vibration feedback while you play. If TalkBack vibration is on, this setting will be ignored.") }
+        item { SettingsDescription("Adds vibration feedback during gameplay.") }
 
         item {
             Row(
