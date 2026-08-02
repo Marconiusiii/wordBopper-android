@@ -626,6 +626,7 @@ private fun BestStatCell(label: String, value: String, modifier: Modifier = Modi
 private fun InstructionsSheetContent(onDismiss: () -> Unit) {
     val instructions = listOf(
         "Tap letter bubbles anywhere on the grid to build words.",
+        "Use regular dictionary words. Names, places, and other proper nouns do not count.",
         "Build words with at least 3 letters in a row that are next to each other in the grid to earn a chain bonus. Do this three times in a row to activate a timed 3x score multiplier.",
         "Hit Make Word to score. Hit Clear Letters to deselect all selected letters and get 15 seconds added to the timer in Timed mode.",
         "When BopAway is on, each letter you tap moves into the word tray and gets replaced right away. Hit Clear Word to erase the current word from the tray.",

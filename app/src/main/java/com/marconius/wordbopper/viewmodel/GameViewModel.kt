@@ -513,6 +513,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 bubbles.add(Bubble(letter = randomLetter(row, col), colorIndex = randomColor(), row = row, col = col))
             }
         }
+        enforceCompactGridVowelMinimum()
 
         screen = GameScreen.GAME
         if (dailyBopEntry != null) audio.playDailyBopIntroSound()
@@ -999,8 +1000,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun randomLetter(row: Int, col: Int, replacingId: UUID? = null): String {
+        val forceVowel = shouldForceVowel(replacingId)
+        val pool = if (forceVowel) vowelPool else dictionaryLanguage.letterPool
         repeat(12) {
-            val candidate = randomLetterCandidate()
+            val candidate = randomLetterCandidate(pool, allowDailyBopNudge = !forceVowel)
             if (!hasAdjacentLetter(candidate, row, col, replacingId)) return candidate
         }
 
@@ -1013,20 +1016,50 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
             .map { it.letter }
             .toSet()
-        val fallbackPool = dictionaryLanguage.letterPool
+        val fallbackPool = pool
             .filterNot { it in adjacentLetters }
-            .ifEmpty { dictionaryLanguage.letterPool }
+            .ifEmpty { pool }
         return randomDailyBopLetter()
-            ?.takeIf { it in fallbackPool && (0 until 100).random() < 16 }
+            ?.takeIf { !forceVowel && it in fallbackPool && (0 until 100).random() < 16 }
             ?: fallbackPool.random()
     }
 
-    private fun randomLetterCandidate(): String {
+    private fun enforceCompactGridVowelMinimum() {
+        val minimumVowels = compactGridMinimumVowels
+        if (minimumVowels <= 0 || vowelPool.isEmpty()) return
+        while (vowelCount() < minimumVowels) {
+            val bubble = bubbles.filterNot { isVowel(it.letter) }.randomOrNull() ?: return
+            val index = bubbles.indexOfFirst { it.id == bubble.id }
+            if (index < 0) return
+            bubbles[index] = Bubble(
+                letter = randomLetter(
+                    row = bubble.row,
+                    col = bubble.col,
+                    replacingId = bubble.id,
+                    forceVowel = true
+                ),
+                colorIndex = bubble.colorIndex,
+                row = bubble.row,
+                col = bubble.col
+            )
+        }
+    }
+
+    private fun randomLetter(row: Int, col: Int, replacingId: UUID?, forceVowel: Boolean): String {
+        val pool = if (forceVowel) vowelPool else dictionaryLanguage.letterPool
+        repeat(12) {
+            val candidate = randomLetterCandidate(pool, allowDailyBopNudge = !forceVowel)
+            if (!hasAdjacentLetter(candidate, row, col, replacingId)) return candidate
+        }
+        return pool.random()
+    }
+
+    private fun randomLetterCandidate(pool: List<String>, allowDailyBopNudge: Boolean = true): String {
         val dailyBopLetter = randomDailyBopLetter()
-        if (dailyBopLetter != null && (0 until 100).random() < 16) {
+        if (allowDailyBopNudge && dailyBopLetter != null && (0 until 100).random() < 16) {
             return dailyBopLetter
         }
-        return dictionaryLanguage.letterPool.random()
+        return pool.random()
     }
 
     private fun randomDailyBopLetter(): String? {
@@ -1034,6 +1067,31 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (dailyBopTargetLanguage != dictionaryLanguage) return null
         val letters = targetWord.map { it.toString() }.filter { it.isNotBlank() }
         return letters.randomOrNull()
+    }
+
+    private val compactGridMinimumVowels: Int
+        get() = when {
+            boardColumns == 3 && boardRows == 3 -> 2
+            boardColumns == 4 && boardRows == 4 -> 3
+            else -> 0
+        }
+
+    private val vowelPool: List<String>
+        get() = dictionaryLanguage.letterPool.filter { isVowel(it) }
+
+    private fun shouldForceVowel(replacingId: UUID?): Boolean {
+        if (compactGridMinimumVowels <= 0 || replacingId == null || vowelPool.isEmpty()) return false
+        return vowelCount(excludingId = replacingId) < compactGridMinimumVowels
+    }
+
+    private fun vowelCount(excludingId: UUID? = null): Int {
+        return bubbles.count { bubble ->
+            bubble.id != excludingId && isVowel(bubble.letter)
+        }
+    }
+
+    private fun isVowel(letter: String): Boolean {
+        return letter.lowercase() in listOf("a", "e", "i", "o", "u")
     }
 
     private fun hasAdjacentLetter(letter: String, row: Int, col: Int, replacingId: UUID?): Boolean {
