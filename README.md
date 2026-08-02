@@ -2,8 +2,6 @@
 
 WordBopper is an accessible word game for Android. Build words from neighboring letters, submit valid words for points, and use chain bonuses to push your score higher.
 
-The app is designed for everyday Android phones and has an experimental Monarch mode for the APH Monarch tactile display through HumanWare KeySoft self-brailling APIs.
-
 ## Gameplay
 
 - Build words by selecting letters in the grid.
@@ -19,20 +17,6 @@ WordBopper is built accessibility-first:
 - TalkBack-friendly controls on Android phones.
 - Spoken scoring, invalid-word, duplicate-word, and clear-word announcements.
 - Optional letter position and phonetic announcements.
-- A Monarch-specific tactile display mode with braille letter cells, word tray output, Dot 8 submit, Dot 7 clear, and BopAway support.
-
-## Monarch Mode
-
-On supported Monarch hardware, the app switches from the standard Compose phone UI to a self-brailling tactile layout.
-
-Current Monarch controls:
-
-- Dot 8: submit the current word.
-- Dot 7: clear letters, or clear word when BopAway is on.
-- Type `b` on the home screen: toggle BopAway.
-- Double-tap a tactile letter cell: add or select that letter.
-
-The Monarch display uses compact tactile status text such as `word 15pts cb`, while spoken announcements keep the full wording, such as `word, 15 points, chain bonus`.
 
 ## Dictionary
 
@@ -45,20 +29,18 @@ See `THIRD_PARTY_NOTICES.md` for word list notices.
 - Android Studio or the Android command-line tools.
 - JDK compatible with the Android Gradle Plugin used by this project.
 - Android SDK installed locally.
-- Access to the KeySoft SDK Maven repository if building Monarch support.
 
 ## Private Local Setup
 
 Do not commit signing keys or private tokens.
 
-Create a local `keystore.properties` file in the project root when you need release signing or KeySoft SDK access:
+Create a local `keystore.properties` file in the project root when you need release signing:
 
 ```properties
 storeFile=/absolute/path/to/upload-key.jks
 storePassword=your_store_password
 keyAlias=your_key_alias
 keyPassword=your_key_password
-gitlab_maven_repo_deployToken=your_keysoft_sdk_token
 ```
 
 This file is ignored by Git.

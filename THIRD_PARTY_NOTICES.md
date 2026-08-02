@@ -34,10 +34,6 @@ Morph-it! is dual-licensed under the Creative Commons Attribution ShareAlike 2.0
 
 The Brazilian Portuguese word list is derived from the pythonprobr/palavras word list, which is based primarily on the LibreOffice Brazilian Portuguese spelling dictionary and made available under the Mozilla Public License 2.0.
 
-## KeySoft SDK
-
-Monarch support uses HumanWare KeySoft SDK APIs. The SDK itself is not included in this repository; builds resolve it from the configured Maven repository when valid local credentials are supplied.
-
 ## Android and Jetpack Libraries
 
 WordBopper depends on AndroidX and Jetpack Compose libraries through Gradle. See `app/build.gradle.kts` and `gradle/libs.versions.toml` for the dependency list used by the build.

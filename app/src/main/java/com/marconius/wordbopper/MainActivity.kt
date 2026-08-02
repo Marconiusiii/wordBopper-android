@@ -41,8 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
-import com.marconius.wordbopper.monarch.MonarchDisplayController
 import com.marconius.wordbopper.model.GameScreen
 import com.marconius.wordbopper.ui.screens.GameScreen
 import com.marconius.wordbopper.ui.screens.ResultsScreen
@@ -57,23 +55,9 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private val viewModel: GameViewModel by viewModels()
-    private var monarchController: MonarchDisplayController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (MonarchDisplayController.shouldUseMonarchMode()) {
-            // The Monarch path has no Loading screen to trigger warm-up, so kick it off
-            // here; it advances the screen from LOADING to START when ready, which the
-            // controller already handles.
-            viewModel.warmUp()
-            monarchController = MonarchDisplayController(
-                activity = this,
-                viewModel = viewModel,
-                lifecycleScope = lifecycleScope
-            ).also { it.create() }
-            return
-        }
-
         enableEdgeToEdge()
         setContent {
             WordBopperTheme {
@@ -118,7 +102,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        monarchController?.resume()
     }
 
     override fun onStop() {
@@ -128,23 +111,14 @@ class MainActivity : ComponentActivity() {
         // and pausing there made a freshly started game pop straight into the Pause cover.
         // Silent pause; the flourish is reserved for the explicit Pause button.
         viewModel.pauseGame(playSound = false)
-        monarchController?.stop()
         super.onStop()
     }
 
     override fun onDestroy() {
-        monarchController?.destroy()
-        monarchController = null
         super.onDestroy()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (
-            event.action == KeyEvent.ACTION_DOWN &&
-            monarchController?.handleKeyDown(event.keyCode) == true
-        ) {
-            return true
-        }
         if (event.action == KeyEvent.ACTION_DOWN && handleGameKeyShortcut(event.keyCode)) {
             return true
         }
@@ -173,9 +147,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (monarchController?.handleKeyDown(keyCode) == true) {
-            return true
-        }
         return super.onKeyDown(keyCode, event)
     }
 }
