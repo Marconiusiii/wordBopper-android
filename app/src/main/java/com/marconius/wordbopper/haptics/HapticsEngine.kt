@@ -68,7 +68,7 @@ class HapticsEngine(context: Context) {
     // MARK: - Game event haptics
 
     fun clearLetters() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         play(
             listOf(
                 Pulse(Style.MEDIUM, 0.65, 0),
@@ -78,7 +78,7 @@ class HapticsEngine(context: Context) {
     }
 
     fun invalidWord() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         play(
             listOf(
                 Pulse(Style.MEDIUM, 0.7, 0),
@@ -88,7 +88,7 @@ class HapticsEngine(context: Context) {
     }
 
     fun wordScored(wordLength: Int) {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         val noteCount = if (wordLength >= 7) 7 else if (wordLength >= 5) 5 else 3
         val spacing = if (wordLength >= 7) 55.0 else if (wordLength >= 5) 65.0 else 75.0
         val finishTime = spacing * noteCount + 520.0
@@ -105,7 +105,7 @@ class HapticsEngine(context: Context) {
     }
 
     fun chainWord() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         val pulses = mutableListOf<Pulse>()
         for (index in 0 until 4) {
             pulses.add(Pulse(Style.LIGHT, 0.36 + index * 0.08, (index * 45).toLong()))
@@ -116,7 +116,7 @@ class HapticsEngine(context: Context) {
     }
 
     fun powerUpActivated() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         play(
             listOf(
                 Pulse(Style.LIGHT, 0.35, 0),
@@ -129,7 +129,7 @@ class HapticsEngine(context: Context) {
     }
 
     fun powerUpScored() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         val glissandoTimes = listOf(20L, 85L, 150L, 215L, 280L, 340L)
         val pulses = mutableListOf<Pulse>()
         glissandoTimes.forEachIndexed { index, time ->
@@ -146,12 +146,12 @@ class HapticsEngine(context: Context) {
     }
 
     fun roundStarted() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         play(listOf(Pulse(Style.LIGHT, 0.5, 0)))
     }
 
     fun roundEnded() {
-        if (!isEnabled) return
+        if (!shouldPlayGameHaptic()) return
         val pulses = mutableListOf<Pulse>()
         for (index in 0 until 7) {
             val style = if (index == 6) Style.HEAVY else Style.LIGHT
@@ -166,6 +166,9 @@ class HapticsEngine(context: Context) {
     // MARK: - Playback
 
     private fun shouldPlayInteractionHaptic(): Boolean =
+        isEnabled && accessibilityManager?.isTouchExplorationEnabled != true
+
+    private fun shouldPlayGameHaptic(): Boolean =
         isEnabled && accessibilityManager?.isTouchExplorationEnabled != true
 
     private fun playTick() {
