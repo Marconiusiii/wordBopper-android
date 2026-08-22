@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -128,7 +129,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var gameHapticsEnabled by mutableStateOf(true)
         private set
-    var gameVolume by mutableStateOf(0.82f)
+    var gameVolume by mutableFloatStateOf(0.82f)
         private set
 
     // Game state

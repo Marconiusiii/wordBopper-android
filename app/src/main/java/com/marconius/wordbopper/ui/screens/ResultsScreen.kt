@@ -297,12 +297,15 @@ private fun openDefinitionSearch(context: android.content.Context, word: String)
     val query = "define $word"
     val searchIntent = Intent(Intent.ACTION_WEB_SEARCH)
         .putExtra(SearchManager.QUERY, query)
-    val intent = if (searchIntent.resolveActivity(context.packageManager) != null) {
-        searchIntent
-    } else {
-        Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=${Uri.encode(query)}"))
+    val fallbackIntent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse("https://www.google.com/search?q=${Uri.encode(query)}")
+    )
+    runCatching {
+        context.startActivity(searchIntent)
+    }.onFailure {
+        runCatching { context.startActivity(fallbackIntent) }
     }
-    runCatching { context.startActivity(intent) }
 }
 
 @Composable
