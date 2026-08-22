@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.marconius.wordbopper.model.Bubble
+import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
 import com.marconius.wordbopper.model.BubbleTextColorOption
 import com.marconius.wordbopper.model.DictionaryLanguage
@@ -71,6 +72,7 @@ class BubbleGridScalingTest {
                     columns = columns,
                     rows = rows,
                     textColorOption = BubbleTextColorOption.DARK,
+                    colorTheme = BubbleColorTheme.CLASSIC_BRIGHT,
                     letterStyle = BubbleLetterStyle.PLAYFUL,
                     dictionaryLanguage = DictionaryLanguage.ENGLISH,
                     letterPositionMode = LetterPositionMode.OFF,

@@ -118,13 +118,6 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN && handleGameKeyShortcut(event.keyCode)) {
-            return true
-        }
-        return super.dispatchKeyEvent(event)
-    }
-
     // External-keyboard accelerators for the game screen. We deliberately only claim
     // keys that focus traversal and text entry never use (Escape, Backspace/Delete),
     // so Tab/Shift+Tab navigation and Enter/Space activation of the focused control
@@ -147,6 +140,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (handleGameKeyShortcut(keyCode)) {
+            return true
+        }
         return super.onKeyDown(keyCode, event)
     }
 }

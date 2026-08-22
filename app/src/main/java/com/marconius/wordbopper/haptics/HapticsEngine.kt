@@ -39,7 +39,9 @@ class HapticsEngine(context: Context) {
         appContext.getSystemService(AccessibilityManager::class.java)
 
     private val hasAmplitudeControl: Boolean =
-        vibrator?.hasVibrator() == true && vibrator.hasAmplitudeControl()
+        vibrator?.hasVibrator() == true &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            vibrator.hasAmplitudeControl()
 
     // iOS feedback styles approximated as (durationMs, amplitudeWeight at intensity 1.0).
     private enum class Style(val durationMs: Long, val maxAmplitude: Int) {
@@ -203,13 +205,20 @@ class HapticsEngine(context: Context) {
             cursor = pulse.delayMs + pulse.style.durationMs
         }
 
-        if (hasAmplitudeControl) {
-            v.vibrate(VibrationEffect.createWaveform(timings.toLongArray(), amplitudes.toIntArray(), -1))
+        val waveformTimings = timings.toLongArray()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val effect = if (hasAmplitudeControl) {
+                VibrationEffect.createWaveform(waveformTimings, amplitudes.toIntArray(), -1)
+            } else {
+                // No amplitude control: createWaveform without amplitudes treats every other
+                // entry as "on", matching our gap/pulse ordering.
+                VibrationEffect.createWaveform(waveformTimings, -1)
+            }
+            v.vibrate(effect)
         } else {
-            // No amplitude control: fall back to an on/off pattern. createWaveform without
-            // amplitudes treats every other entry as "on", which already matches our gap/pulse
-            // ordering (index 0 is the leading gap = off).
-            v.vibrate(VibrationEffect.createWaveform(timings.toLongArray(), -1))
+            // Android 7 supports timing-only vibration patterns but not VibrationEffect.
+            @Suppress("DEPRECATION")
+            v.vibrate(waveformTimings, -1)
         }
     }
 
