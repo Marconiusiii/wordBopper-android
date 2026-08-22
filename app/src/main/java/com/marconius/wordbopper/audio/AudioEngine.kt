@@ -120,6 +120,62 @@ class AudioEngine(
         play(ctx.toFloatArray())
     }
 
+    fun playBopQuestWordSound(wordLength: Int) {
+        val masterVol = if (wordLength >= 7) 0.92 else if (wordLength >= 5) 0.82 else 0.72
+        val motif = listOf(659.25, 783.99, 987.77, 1318.51)
+        val finish = listOf(261.63, 392.0, 523.25, 659.25, 987.77)
+        val ctx = SynthContext(1.18, sampleRate)
+
+        for ((index, frequency) in motif.withIndex()) {
+            val start = index * 0.06
+            ctx.addOsc(
+                OscType.SINE,
+                frequency,
+                start,
+                0.006,
+                0.2 * masterVol,
+                0.46,
+                filter = FilterSpec(FilterKind.BANDPASS, frequency, 7.0)
+            )
+            ctx.addOsc(
+                OscType.TRIANGLE,
+                frequency * 2,
+                start + 0.012,
+                0.004,
+                0.055 * masterVol,
+                0.34,
+                filter = FilterSpec(FilterKind.BANDPASS, frequency * 2, 8.0)
+            )
+        }
+
+        ctx.addOscWithFreqSlide(523.25, 1567.98, 0.05, 0.22, 0.06 * masterVol)
+        ctx.addNoise(0.03, 0.12, 0.12 * masterVol, highpass = false, bandpass = true)
+
+        for (frequency in finish) {
+            ctx.addOsc(
+                OscType.SINE,
+                frequency,
+                0.32,
+                0.016,
+                0.095 * masterVol,
+                0.76,
+                0.4,
+                0.12
+            )
+            ctx.addOsc(
+                OscType.TRIANGLE,
+                frequency * 2,
+                0.32,
+                0.01,
+                0.022 * masterVol,
+                0.58,
+                0.28,
+                0.1
+            )
+        }
+        play(ctx.toFloatArray())
+    }
+
     fun playInvalidSound() {
         val ctx = SynthContext(0.3, sampleRate)
         ctx.addOscWithFreqSlide(280.0, 80.0, 0.0, 0.25, 0.34)

@@ -1,0 +1,18 @@
+# One word per line. Blank lines and comments are ignored.
+backpack
+class
+desk
+eraser
+homework
+lesson
+library
+lunch
+notebook
+paper
+pencil
+recess
+ruler
+school
+student
+study
+teacher

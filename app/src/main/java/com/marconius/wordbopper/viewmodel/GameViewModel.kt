@@ -11,10 +11,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.marconius.wordbopper.audio.AudioEngine
+import com.marconius.wordbopper.data.BopQuestService
 import com.marconius.wordbopper.data.DictionaryService
 import com.marconius.wordbopper.data.GameplayAnnouncements
 import com.marconius.wordbopper.haptics.HapticsEngine
 import com.marconius.wordbopper.model.BestGame
+import com.marconius.wordbopper.model.BopQuestEvent
+import com.marconius.wordbopper.model.BopQuestProgress
+import com.marconius.wordbopper.model.BopQuestWord
 import com.marconius.wordbopper.model.Bubble
 import com.marconius.wordbopper.model.BubbleColorTheme
 import com.marconius.wordbopper.model.BubbleLetterStyle
@@ -83,6 +87,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val dictionary = DictionaryService.getInstance(application)
+    private val bopQuestService = BopQuestService(application)
+    private val playerRanks = bopQuestService.loadPlayerRanks()
     private val prefs: SharedPreferences =
         application.getSharedPreferences("word_bopper", Context.MODE_PRIVATE)
     val audio = AudioEngine(viewModelScope, application)
@@ -177,6 +183,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var dailyBopEnabledLanguages by mutableStateOf<List<DictionaryLanguage>>(emptyList())
         private set
+    var activeBopQuest by mutableStateOf<BopQuestEvent?>(null)
+        private set
+    val bopQuestWordsFoundThisRound = mutableStateListOf<String>()
 
     private var timerJob: Job? = null
     private var powerUpTimerJob: Job? = null
@@ -222,7 +231,29 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         get() = bestGame.dailyBopLanguageStats.sumOf { it.foundCount }
 
     val currentDailyBopRank: String
-        get() = dailyBopRank(totalDailyBopsFound)
+        get() = dailyBopRank(totalDailyBopsFound + bestGame.bopQuestRankPoints)
+
+    val activeBopQuestIsAvailableForCurrentLanguage: Boolean
+        get() {
+            if (activeBopQuest == null) refreshActiveBopQuest()
+            return activeBopQuest?.words(dictionaryLanguage)?.isNotEmpty() == true
+        }
+
+    val activeBopQuestProgressText: String
+        get() {
+            val quest = activeBopQuest ?: return ""
+            val foundCount = foundBopQuestWords(dictionaryLanguage).size
+            return "$foundCount of ${quest.words(dictionaryLanguage).size} words found"
+        }
+
+    val activeBopQuestWords: List<BopQuestWord>
+        get() {
+            val quest = activeBopQuest ?: return emptyList()
+            val foundWords = foundBopQuestWords(dictionaryLanguage)
+            return quest.words(dictionaryLanguage).map { word ->
+                BopQuestWord(word = word, found = word in foundWords)
+            }
+        }
 
     val dailyBopStats: List<DailyBopLanguageStat>
         get() = bestGame.dailyBopLanguageStats
@@ -258,6 +289,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         gameVolume = loadGameVolume()
         audio.volume = gameVolume
         dailyBopEnabledLanguages = loadDailyBopEnabledLanguages(dictionaryLanguage)
+        activeBopQuest = bopQuestService.loadActiveQuest()
         boardColumns = gridSizeOption.dimension
         boardRows = gridSizeOption.dimension
     }
@@ -281,6 +313,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 prebuildThrowawayRound()
             }
             prepareDailyBopEntries()
+            refreshActiveBopQuest()
             screen = GameScreen.START
         }
     }
@@ -298,6 +331,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 audio.prepareDailyBopAnthemPreview()
             }
             prepareDailyBopEntries()
+            refreshActiveBopQuest()
             screen = GameScreen.START
         }
     }
@@ -373,6 +407,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putString("wordBopDictionaryLanguage", language.name).apply()
         preloadDictionary(language)
         ensureDailyBopLanguageEnabled(language)
+        refreshActiveBopQuest()
     }
 
     private fun preloadDictionary(language: DictionaryLanguage) {
@@ -486,6 +521,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         dailyBopTargetWord = dailyBopEntry?.word
         dailyBopTargetLanguage = dailyBopEntry?.language
         dailyBopFoundThisRound = false
+        bopQuestWordsFoundThisRound.clear()
         largestLetterChain = 0
         gameplayHeading = randomGameplayHeading()
         haptics.roundStarted()
@@ -649,6 +685,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val basePoints = calcScore(word) + chainBonus
         val dailyBopWasFound = isDailyBopWord(word)
         val dailyBopCanActivate = dailyBopWasFound && canActivateDailyBopBoostToday()
+        val normalizedWord = dictionary.normalized(word, dictionaryLanguage)
+        val bopQuestWasFound = recordBopQuestWordIfNeeded(normalizedWord)
         val multiplier = if (gameMode == GameMode.BOPPLE) 1 else if (dailyBopBoostActive || chainPowerUpActive || dailyBopCanActivate) 3 else 1
         val points = basePoints * multiplier
 
@@ -663,7 +701,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         score += points
         wordCount += 1
         totalLettersUsed += word.length
-        madeWords.add(dictionary.normalized(word, dictionaryLanguage))
+        madeWords.add(normalizedWord)
         if (gameMode != GameMode.BOPPLE && chainBonus > largestLetterChain) largestLetterChain = chainBonus
 
         if (multiplier > 1) {
@@ -672,6 +710,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
             audio.playChainMultiplierScoreSound(word.length)
             haptics.powerUpScored()
+        } else if (bopQuestWasFound) {
+            audio.playBopQuestWordSound(word.length)
+            haptics.wordScored(word.length)
         } else {
             audio.playWordSound(word.length)
             haptics.wordScored(word.length)
@@ -688,7 +729,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 multiplier = multiplier,
                 powerUpActivated = powerUpActivated,
                 verbosity = gameAnnouncementVerbosity,
-                dailyBopActivated = dailyBopActivated
+                dailyBopActivated = dailyBopActivated,
+                bopQuestFound = bopQuestWasFound
             ),
             includeInLowVerbosity = true
         )
@@ -795,6 +837,44 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         powerUpTimerJob = null
         audio.stopPowerUpChimes()
     }
+
+    // MARK: - BopQuest
+
+    fun refreshActiveBopQuest() {
+        activeBopQuest = bopQuestService.loadActiveQuest()
+    }
+
+    private fun recordBopQuestWordIfNeeded(word: String): Boolean {
+        val quest = activeBopQuest ?: return false
+        val existingProgress = bopQuestProgress(quest.id)
+        val update = BopQuestService.recordWord(
+            progress = existingProgress,
+            quest = quest,
+            language = dictionaryLanguage,
+            word = word
+        ) ?: return false
+        val allProgress = bestGame.bopQuestProgress.toMutableList()
+        val progressIndex = allProgress.indexOfFirst { it.questId == quest.id }
+        if (progressIndex >= 0) allProgress[progressIndex] = update.progress
+        else allProgress.add(update.progress)
+
+        bestGame = bestGame.copy(
+            bopQuestRankPoints = bestGame.bopQuestRankPoints + update.pointsEarned,
+            bopQuestProgress = allProgress
+        )
+        bopQuestWordsFoundThisRound.add(word)
+        saveBestGame()
+        return true
+    }
+
+    private fun foundBopQuestWords(language: DictionaryLanguage): Set<String> {
+        val quest = activeBopQuest ?: return emptySet()
+        return bopQuestProgress(quest.id).foundWordsByLanguage[language].orEmpty().toSet()
+    }
+
+    private fun bopQuestProgress(questId: String): BopQuestProgress =
+        bestGame.bopQuestProgress.firstOrNull { it.questId == questId }
+            ?: BopQuestProgress(questId = questId)
 
     // MARK: - Daily Bop
 
@@ -949,26 +1029,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         return "%04d%02d%02d".format(year, month, day)
     }
 
-    private fun dailyBopRank(count: Int): String {
-        val ranks = listOf(
-            "WordBopper Newbie",
-            "Bubble Scout",
-            "Bop Cadet",
-            "Word Wrangler",
-            "Bopologist",
-            "Bubble Captain",
-            "Grid Maestro",
-            "Daily Bop Dynamo",
-            "Word Wizard",
-            "Bop Commander",
-            "Letter Legend",
-            "Bop Supreme",
-            "Vocabulary Virtuoso",
-            "Daily Bop Champion",
-            "Grand Bopmaster"
-        )
-        return ranks[min(count / 10, ranks.lastIndex)]
-    }
+    private fun dailyBopRank(count: Int): String =
+        playerRanks.lastOrNull { count >= it.threshold }?.title
+            ?: BopQuestService.FALLBACK_PLAYER_RANKS.first().title
 
     // MARK: - Bubble management
 
@@ -1147,7 +1210,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         largestBoppleLetterChain = prefs.getInt("bg_largestBoppleLetterChain", 0),
         largestNonStopLetterChain = prefs.getInt("bg_largestNonStopLetterChain", 0),
         languageModeBestGames = loadLanguageModeBestGames(),
-        dailyBopLanguageStats = loadDailyBopLanguageStats()
+        dailyBopLanguageStats = loadDailyBopLanguageStats(),
+        bopQuestRankPoints = prefs.getInt("bg_bopQuestRankPoints", 0),
+        bopQuestProgress = loadBopQuestProgress()
     )
 
     private fun saveBestGame() {
@@ -1166,6 +1231,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             putInt("bg_largestNonStopLetterChain", bestGame.largestNonStopLetterChain)
             putString("bg_languageModeBestGames", encodeLanguageModeBestGames(bestGame.languageModeBestGames))
             putString("bg_dailyBopLanguageStats", encodeDailyBopLanguageStats(bestGame.dailyBopLanguageStats))
+            putInt("bg_bopQuestRankPoints", bestGame.bopQuestRankPoints)
+            putString("bg_bopQuestProgress", encodeBopQuestProgress(bestGame.bopQuestProgress))
         }.apply()
     }
 
@@ -1317,6 +1384,71 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     .put("language", record.language.name)
                     .put("foundCount", record.foundCount)
                     .put("lastFoundDateKey", record.lastFoundDateKey)
+            )
+        }
+        return array.toString()
+    }
+
+    private fun loadBopQuestProgress(): List<BopQuestProgress> {
+        val json = prefs.getString("bg_bopQuestProgress", null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(json)
+            buildList {
+                for (index in 0 until array.length()) {
+                    val item = array.optJSONObject(index) ?: continue
+                    val questId = item.optString("questId").takeIf(String::isNotBlank) ?: continue
+                    val foundWordsByLanguageJson = item.optJSONObject("foundWordsByLanguage")
+                    val foundWordsByLanguage = buildMap {
+                        DictionaryLanguage.entries.forEach { language ->
+                            val wordsJson = foundWordsByLanguageJson?.optJSONArray(language.name)
+                                ?: return@forEach
+                            val words = buildList {
+                                for (wordIndex in 0 until wordsJson.length()) {
+                                    wordsJson.optString(wordIndex)
+                                        .takeIf(String::isNotBlank)
+                                        ?.let(::add)
+                                }
+                            }
+                            if (words.isNotEmpty()) put(language, words)
+                        }
+                    }
+                    val awardedJson = item.optJSONArray("awardedCompletionBonusLanguages")
+                    val awardedLanguages = buildList {
+                        if (awardedJson != null) {
+                            for (languageIndex in 0 until awardedJson.length()) {
+                                DictionaryLanguage.entries
+                                    .firstOrNull { it.name == awardedJson.optString(languageIndex) }
+                                    ?.let(::add)
+                            }
+                        }
+                    }
+                    add(
+                        BopQuestProgress(
+                            questId = questId,
+                            foundWordsByLanguage = foundWordsByLanguage,
+                            awardedCompletionBonusLanguages = awardedLanguages
+                        )
+                    )
+                }
+            }
+        }.getOrElse { emptyList() }
+    }
+
+    private fun encodeBopQuestProgress(records: List<BopQuestProgress>): String {
+        val array = JSONArray()
+        records.forEach { progress ->
+            val foundWordsByLanguage = JSONObject()
+            progress.foundWordsByLanguage.forEach { (language, words) ->
+                foundWordsByLanguage.put(language.name, JSONArray(words))
+            }
+            array.put(
+                JSONObject()
+                    .put("questId", progress.questId)
+                    .put("foundWordsByLanguage", foundWordsByLanguage)
+                    .put(
+                        "awardedCompletionBonusLanguages",
+                        JSONArray(progress.awardedCompletionBonusLanguages.map(DictionaryLanguage::name))
+                    )
             )
         }
         return array.toString()

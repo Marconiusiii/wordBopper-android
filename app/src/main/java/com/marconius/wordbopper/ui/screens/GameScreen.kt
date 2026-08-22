@@ -23,11 +23,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +52,7 @@ import com.marconius.wordbopper.ui.components.StatsBar
 import com.marconius.wordbopper.ui.components.WordTray
 import com.marconius.wordbopper.ui.theme.WbAccent1
 import com.marconius.wordbopper.ui.theme.WbAccent2
+import com.marconius.wordbopper.ui.theme.WbAccent3
 import com.marconius.wordbopper.ui.theme.WbAccent4
 import com.marconius.wordbopper.ui.theme.WbAccent5
 import com.marconius.wordbopper.ui.theme.WbBackground
@@ -71,8 +77,10 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextAlign
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(vm: GameViewModel) {
+    var showBopQuest by remember { mutableStateOf(false) }
     val selectedIds by remember { derivedStateOf {
         if (vm.bopAwayIsActive) emptySet<UUID>() else vm.selected.map { it.bubbleId }.toHashSet()
     } }
@@ -93,17 +101,28 @@ fun GameScreen(vm: GameViewModel) {
             .semantics { paneTitle = vm.gameplayHeading }
     ) {
         if (vm.gamePaused) {
-            GamePauseCover(vm = vm)
+            GamePauseCover(vm = vm, onShowBopQuest = { showBopQuest = true })
         } else if (useLandscapeLayout) {
             LandscapeLayout(vm = vm, selectedIds = selectedIds)
         } else {
             PortraitLayout(vm = vm, selectedIds = selectedIds)
         }
     }
+
+    if (showBopQuest) {
+        ModalBottomSheet(
+            onDismissRequest = { showBopQuest = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            BopQuestSheetContent(vm = vm, onDismiss = { showBopQuest = false })
+        }
+    }
 }
 
 @Composable
-private fun GamePauseCover(vm: GameViewModel) {
+private fun GamePauseCover(vm: GameViewModel, onShowBopQuest: () -> Unit) {
     val context = LocalContext.current
     val heading = vm.pauseHeading
 
@@ -158,6 +177,15 @@ private fun GamePauseCover(vm: GameViewModel) {
             background = Brush.linearGradient(listOf(WbAccent5, WbAccent4)),
             onClick = { vm.resumeGame() }
         )
+
+        if (vm.activeBopQuestIsAvailableForCurrentLanguage) {
+            PauseActionButton(
+                title = "BopQuest",
+                textColor = Color.Black,
+                background = Brush.linearGradient(listOf(WbAccent1, WbAccent3)),
+                onClick = onShowBopQuest
+            )
+        }
 
         PauseActionButton(
             title = "End Game",

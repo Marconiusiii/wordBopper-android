@@ -1,0 +1,4 @@
+title: Back to School BopQuest
+starts: 2026-09-01
+ends: 2026-09-30
+bonus: 10

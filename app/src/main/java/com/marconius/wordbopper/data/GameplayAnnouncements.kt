@@ -18,12 +18,14 @@ object GameplayAnnouncements {
         multiplier: Int,
         powerUpActivated: Boolean,
         verbosity: GameAnnouncementVerbosity,
-        dailyBopActivated: Boolean = false
+        dailyBopActivated: Boolean = false,
+        bopQuestFound: Boolean = false
     ): String {
         val pointText = if (points == 1) "1 point" else "$points points"
 
         if (verbosity == GameAnnouncementVerbosity.LOW) {
             if (dailyBopActivated) return "Daily Bop found! 3 times boost active!"
+            if (bopQuestFound) return "BopQuest word found!"
             return if (powerUpActivated) "3 times active!" else "$pointText."
         }
 
@@ -33,6 +35,7 @@ object GameplayAnnouncements {
         val parts = mutableListOf("$word, $pointText")
         if (multiplier > 1) parts.add("3 times")
         else if (chainBonus > 0) parts.add("chain bonus")
+        if (bopQuestFound) parts.add("BopQuest word found")
 
         return parts.joinToString(", ") + "."
     }

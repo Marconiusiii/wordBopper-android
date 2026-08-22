@@ -1,0 +1,50 @@
+# WordBopper rank ladder
+# Format: rank points, tab, rank title
+# Blank lines and lines starting with # are ignored.
+0	WordBopper Newbie
+10	Bubble Scout
+20	Bop Apprentice
+30	Letter Dabbler
+40	Vowel Wrangler
+50	Bop Cadet
+60	Consonaut
+70	Syllable Slinger
+80	Grid Tinkerer
+90	Word Wrangler
+100	Bubble Captain
+115	Lexicon Sprout
+130	Bopologist
+145	Letter Juggler
+160	Wordmonger
+175	Grid Maestro
+190	Bubble Savant
+205	Daily Bop Dynamo
+220	Quest Quester
+235	Diction Dazzler
+250	Morpheme Maestro
+265	Vocabularian
+280	Bop Commander
+295	Syntax Sparkler
+310	Lexical Acrobat
+330	Letter Legend
+350	Quest Collector
+370	BopQuest Bestie
+390	Word Wizard
+410	Phoneme Phenomenon
+430	Bubble Trailblazer
+455	Vocabulary Virtuoso
+480	Daily Bop Champion
+505	Boppleopolist
+530	BopQuest Champion
+555	Grid Grandmaster
+585	Verbivore
+615	Wordsmith Supreme
+645	Bop Laureate
+680	Bop Supreme
+715	Grand Bopmaster
+755	Lexicon Luminary
+795	Sesquipedalian Bopper
+840	Legendary WordBopper
+885	Bop Beyond Compare
+935	Grandiloquent Gridmaster
+985	The Big Bopper

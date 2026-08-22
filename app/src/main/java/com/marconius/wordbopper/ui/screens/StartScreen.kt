@@ -88,6 +88,7 @@ import com.marconius.wordbopper.model.LanguageModeBestGame
 import com.marconius.wordbopper.model.LetterPositionMode
 import com.marconius.wordbopper.ui.theme.WbAccent1
 import com.marconius.wordbopper.ui.theme.WbAccent2
+import com.marconius.wordbopper.ui.theme.WbAccent3
 import com.marconius.wordbopper.ui.theme.WbAccent5
 import com.marconius.wordbopper.ui.theme.WbBackground
 import com.marconius.wordbopper.ui.theme.WbMuted
@@ -105,8 +106,10 @@ fun StartScreen(vm: GameViewModel) {
     var showInstructions by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showDailyBop by remember { mutableStateOf(false) }
+    var showBopQuest by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        vm.refreshActiveBopQuest()
         headingFocusRequester.requestFocus()
     }
 
@@ -169,13 +172,21 @@ fun StartScreen(vm: GameViewModel) {
             showDailyBop = true
         })
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        BopQuestButton(onClick = {
+            vm.refreshActiveBopQuest()
+            showBopQuest = true
+        })
+
         Spacer(modifier = Modifier.height(16.dp))
 
         BestGameCard(
             bestGame = vm.bestGame,
             dailyBopRank = vm.currentDailyBopRank,
             totalDailyBopsFound = vm.totalDailyBopsFound,
-            dailyBopStats = vm.dailyBopStats
+            dailyBopStats = vm.dailyBopStats,
+            bopQuestPoints = vm.bestGame.bopQuestRankPoints
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -214,6 +225,17 @@ fun StartScreen(vm: GameViewModel) {
                 vm = vm,
                 onDismiss = { showDailyBop = false }
             )
+        }
+    }
+
+    if (showBopQuest) {
+        ModalBottomSheet(
+            onDismissRequest = { showBopQuest = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = WbBackground,
+            dragHandle = null
+        ) {
+            BopQuestSheetContent(vm = vm, onDismiss = { showBopQuest = false })
         }
     }
 }
@@ -263,6 +285,31 @@ private fun DailyBopButton(onClick: () -> Unit) {
             lineHeight = 24.sp,
             fontWeight = FontWeight.Black,
             color = WbAccent5,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+    }
+}
+
+@Composable
+private fun BopQuestButton(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 68.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Brush.linearGradient(listOf(WbAccent1, WbAccent3)))
+            .clickable(onClickLabel = "BopQuest", onClick = onClick)
+            .semantics { role = Role.Button },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "BopQuest",
+            fontSize = 20.sp,
+            lineHeight = 24.sp,
+            fontWeight = FontWeight.Black,
+            color = Color.Black,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -447,11 +494,133 @@ private fun DailyBopEntryButton(
 }
 
 @Composable
+internal fun BopQuestSheetContent(vm: GameViewModel, onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) {
+        vm.refreshActiveBopQuest()
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+        contentPadding = PaddingValues(bottom = 32.dp)
+    ) {
+        item { SheetCloseButton(onDismiss = onDismiss) }
+        item {
+            Text(
+                text = vm.activeBopQuest?.title ?: "BopQuest",
+                fontSize = 22.sp,
+                lineHeight = 28.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .semantics { heading() }
+            )
+        }
+        item {
+            Text(
+                text = "Find as many themed words as you can before the quest ends. Any game mode counts.",
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+        }
+
+        if (vm.activeBopQuestIsAvailableForCurrentLanguage) {
+            item {
+                Text(
+                    text = vm.activeBopQuestProgressText,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Black,
+                    color = WbAccent5,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .semantics { heading() }
+                )
+            }
+            vm.activeBopQuestWords.forEachIndexed { index, questWord ->
+                item(key = questWord.word) {
+                    BopQuestWordRow(
+                        word = questWord.word,
+                        found = questWord.found,
+                        index = index + 1,
+                        total = vm.activeBopQuestWords.size
+                    )
+                }
+            }
+        } else {
+            item {
+                Text(
+                    text = "There is no active BopQuest for the selected language right now.",
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = WbText,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 88.dp)
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BopQuestWordRow(word: String, found: Boolean, index: Int, total: Int) {
+    val spokenLabel = if (found) "$word, found, $index of $total" else "$word, $index of $total"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clearAndSetSemantics { contentDescription = spokenLabel }
+            .padding(horizontal = 24.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = word,
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = FontFamily.Monospace,
+            color = if (found) WbAccent5 else WbText,
+            modifier = Modifier.weight(1f)
+        )
+        if (found) {
+            Text(
+                text = "Found",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.Black,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(WbAccent1)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun BestGameCard(
     bestGame: BestGame,
     dailyBopRank: String,
     totalDailyBopsFound: Int,
-    dailyBopStats: List<DailyBopLanguageStat>
+    dailyBopStats: List<DailyBopLanguageStat>,
+    bopQuestPoints: Int
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -538,7 +707,8 @@ private fun BestGameCard(
                 DailyBopBestGameSection(
                     rank = dailyBopRank,
                     totalFound = totalDailyBopsFound,
-                    stats = dailyBopStats
+                    stats = dailyBopStats,
+                    bopQuestPoints = bopQuestPoints
                 )
             }
         }
@@ -549,7 +719,8 @@ private fun BestGameCard(
 private fun DailyBopBestGameSection(
     rank: String,
     totalFound: Int,
-    stats: List<DailyBopLanguageStat>
+    stats: List<DailyBopLanguageStat>,
+    bopQuestPoints: Int
 ) {
     BestGameSection(
         title = "Daily Bop",
@@ -558,6 +729,12 @@ private fun DailyBopBestGameSection(
             Pair("Daily Bops found", "$totalFound")
         )
     )
+    if (bopQuestPoints > 0) {
+        BestGameSection(
+            title = "BopQuest",
+            stats = listOf(Pair("BopQuest points", "$bopQuestPoints"))
+        )
+    }
     stats.forEach { stat ->
         BestGameSection(
             title = "${stat.language.label} Daily Bop",
@@ -651,6 +828,13 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         "Your Daily Bop rank increases as your total Daily Bops found goes up.",
         "After you bop the Daily Bop word, the Round Complete screen shows it as a button that can open a definition search."
     )
+    val bopQuestInstructions = listOf(
+        "BopQuest gives you a themed list of words to find before the quest ends.",
+        "Any game mode counts, so you can find BopQuest words while playing Timed, Bopple, Non-Stop, or Daily Bop.",
+        "Each BopQuest word adds to your rank the first time you find it.",
+        "Find every word in a BopQuest to earn a completion bonus equal to the number of words in that quest.",
+        "Open BopQuest from the home screen or pause menu to review your progress."
+    )
 
     LazyColumn(
         modifier = Modifier
@@ -709,6 +893,24 @@ private fun InstructionsSheetContent(onDismiss: () -> Unit) {
         }
 
         dailyBopInstructions.forEach { instruction ->
+            item { InstructionRow(instruction) }
+        }
+
+        item {
+            Text(
+                text = "BopQuest",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = WbText,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .semantics { heading() }
+            )
+        }
+
+        bopQuestInstructions.forEach { instruction ->
             item { InstructionRow(instruction) }
         }
     }

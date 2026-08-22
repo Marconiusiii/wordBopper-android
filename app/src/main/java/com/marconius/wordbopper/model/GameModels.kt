@@ -1,5 +1,6 @@
 package com.marconius.wordbopper.model
 
+import java.util.Date
 import java.util.UUID
 
 data class Bubble(
@@ -31,7 +32,9 @@ data class BestGame(
     var largestBoppleLetterChain: Int = 0,
     var largestNonStopLetterChain: Int = 0,
     var languageModeBestGames: List<LanguageModeBestGame> = emptyList(),
-    var dailyBopLanguageStats: List<DailyBopLanguageStat> = emptyList()
+    var dailyBopLanguageStats: List<DailyBopLanguageStat> = emptyList(),
+    var bopQuestRankPoints: Int = 0,
+    var bopQuestProgress: List<BopQuestProgress> = emptyList()
 )
 
 data class LanguageModeBestGame(
@@ -60,3 +63,30 @@ data class DailyBopEntry(
 ) {
     val id: String get() = "${language.name}-$word"
 }
+
+data class PlayerRank(
+    val threshold: Int,
+    val title: String
+)
+
+data class BopQuestWord(
+    val word: String,
+    val found: Boolean
+)
+
+data class BopQuestEvent(
+    val id: String,
+    val title: String,
+    val starts: Date,
+    val ends: Date,
+    val completionBonus: Int,
+    val wordsByLanguage: Map<DictionaryLanguage, List<String>>
+) {
+    fun words(language: DictionaryLanguage): List<String> = wordsByLanguage[language].orEmpty()
+}
+
+data class BopQuestProgress(
+    val questId: String,
+    var foundWordsByLanguage: Map<DictionaryLanguage, List<String>> = emptyMap(),
+    var awardedCompletionBonusLanguages: List<DictionaryLanguage> = emptyList()
+)

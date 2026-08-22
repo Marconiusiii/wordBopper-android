@@ -128,6 +128,10 @@ fun ResultsScreen(vm: GameViewModel) {
                 DailyBopResultButton(word = vm.dailyBopTargetWord.orEmpty())
             }
 
+            if (vm.bopQuestWordsFoundThisRound.isNotEmpty()) {
+                BopQuestFoundSection(words = vm.bopQuestWordsFoundThisRound)
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,6 +183,40 @@ fun ResultsScreen(vm: GameViewModel) {
         }
 
         ResultsActionBar(vm = vm)
+    }
+}
+
+@Composable
+private fun BopQuestFoundSection(words: List<String>) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "BopQuest Words Found",
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Black,
+            color = WbText,
+            modifier = Modifier.semantics { heading() }
+        )
+        words.forEach { word ->
+            Text(
+                text = word,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                color = WbAccent5,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(WbPanel)
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
+            )
+        }
     }
 }
 

@@ -1,0 +1,4 @@
+title: Late Summer BopQuest
+starts: 2026-08-01
+ends: 2026-08-31
+bonus: 10
